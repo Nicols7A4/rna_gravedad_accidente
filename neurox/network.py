@@ -43,12 +43,22 @@ class Network:
         cost='categorical_crossentropy'.
     """
 
-    def __init__(self, layers: list, cost: str = 'mse', class_weights=None):
+    def __init__(self, layers: list, cost: str = 'mse', class_weights=None, gamma: float = 2.0):
         self.layers = layers
         self.cost_name = cost
         self.class_weights = class_weights
+        self.gamma = gamma
 
-        if class_weights is not None:
+        if cost == 'focal_loss':
+            from neurox.costs import get_focal_loss
+            n_out = layers[-1].n_neurons
+            if class_weights is not None and len(class_weights) != n_out:
+                raise ValueError(
+                    f"class_weights tiene {len(class_weights)} valores, "
+                    f"pero la capa de salida tiene {n_out} neuronas."
+                )
+            self.cost_fn, self.cost_grad = get_focal_loss(gamma=gamma, alpha_vector=class_weights)
+        elif class_weights is not None:
             if cost != 'categorical_crossentropy':
                 raise ValueError(
                     "class_weights por ahora solo está soportado con "

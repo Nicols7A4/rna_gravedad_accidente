@@ -100,6 +100,42 @@ def weighted_categorical_crossentropy(class_weights):
     return cost_fn, cost_grad
 
 
+def get_focal_loss(gamma=2.0, alpha_vector=None):
+    """
+    Retorna (cost_fn, cost_grad) para la pérdida Focal Loss multiclase.
+    """
+    if alpha_vector is not None:
+        av = np.array(alpha_vector, dtype=float)
+    else:
+        av = None
+
+    def cost_fn(y_pred, y_true):
+        eps = 1e-15
+        y_pred = np.clip(y_pred, eps, 1.0)
+        pt = np.sum(y_true * y_pred, axis=1, keepdims=True)
+        if av is not None:
+            sample_alpha = np.sum(y_true * av, axis=1, keepdims=True)
+        else:
+            sample_alpha = 1.0
+        loss_vector = -sample_alpha * ((1 - pt) ** gamma) * np.log(pt)
+        return np.mean(loss_vector)
+
+    def cost_grad(y_pred, y_true):
+        eps = 1e-15
+        y_pred = np.clip(y_pred, eps, 1.0)
+        pt = np.sum(y_true * y_pred, axis=1, keepdims=True)
+        if av is not None:
+            sample_alpha = np.sum(y_true * av, axis=1, keepdims=True)
+        else:
+            sample_alpha = 1.0
+        D = gamma * pt * np.log(pt) - (1 - pt)
+        term1 = (1 - pt) ** (gamma - 1)
+        bracket = y_true * (1 - pt) - y_pred + y_true * y_pred
+        return (sample_alpha * term1 * D * bracket) / y_true.shape[0]
+
+    return cost_fn, cost_grad
+
+
 # ─── Registro ────────────────────────────────────────────────────────────────
 
 _COSTS = {

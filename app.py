@@ -42,8 +42,12 @@ def cargar_modelo():
         if modelo_datos['model'] is not None:
             return modelo_datos
         
+        # Configuración de balanceo y pérdida (Propuesta B)
+        balancear = False
+        usar_focal_loss = True
+        
         # Cargar y balancear datos
-        df = cargar_y_balancear(RUTA_CSV, seed=SEMILLA)
+        df = cargar_y_balancear(RUTA_CSV, seed=SEMILLA, balancear=balancear)
         
         # Separar datos para evitar data leakage
         df_train = df.sample(frac=0.8, random_state=SEMILLA)
@@ -64,6 +68,20 @@ def cargar_modelo():
         y_train = codificar_target(df_train, le)
         y_test = codificar_target(df_test, le)
         
+        # Configurar pesos y función de costo adaptativos
+        if usar_focal_loss and not balancear:
+            class_counts = np.sum(y_train, axis=0)
+            total_samples = y_train.shape[0]
+            k_classes = y_train.shape[1]
+            class_counts[class_counts == 0] = 1
+            adaptive_alpha = total_samples / (k_classes * class_counts)
+            print(f"Pesos adaptativos de clase calculados: {adaptive_alpha}")
+            class_weights = adaptive_alpha
+            cost_function = "focal_loss"
+        else:
+            class_weights = None
+            cost_function = "categorical_crossentropy"
+            
         columnas = preprocesador.columns_ohe_
         
         # Normalización
@@ -82,8 +100,9 @@ def cargar_modelo():
                 Dropout(0.3, seed=SEMILLA + 5),
                 Dense(32, len(CLASES), activation="softmax", seed=SEMILLA + 6),
             ],
-            cost="categorical_crossentropy",
-            class_weights=None,
+            cost=cost_function,
+            class_weights=class_weights,
+            gamma=2.0,
         )
         
         print("Entrenando modelo...")
@@ -231,6 +250,12 @@ def api_predict_batch():
             'success': False,
             'error': str(e)
         }), 400
+
+@app.route('/simulator')
+def simulator():
+    """Página del simulador interactivo de riesgo vial"""
+    return render_template('simulator.html', clases=CLASES)
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Iniciar servidor

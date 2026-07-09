@@ -49,19 +49,24 @@ PNG_RED = f"{CARPETA_SALIDA}/arquitectura_red.png"
 # compensar frecuencia -- es para forzar al modelo a prestarle más atención
 # a las clases que confunde entre sí (LESIONADO <-> FALLECIDO).
 # Ajusta estos 3 números y vuelve a correr para ver el efecto.
-CLASS_WEIGHTS = None  # ej.: [1.0, 1.4, 1.4]  (orden: ILESO, LESIONADO, FALLECIDO)
-# CLASS_WEIGHTS = [1.4, 1.4, 1.1]
+# CLASS_WEIGHTS = None  # ej.: [1.0, 1.4, 1.4]  (orden: ILESO, LESIONADO, FALLECIDO)
+CLASS_WEIGHTS = [1.0, 1.0, 2]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. Carga y método A (undersampling balanceado)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def cargar_y_balancear(ruta_csv: str, seed: int = SEMILLA) -> pd.DataFrame:
+def cargar_y_balancear(ruta_csv: str, seed: int = SEMILLA, balancear: bool = True) -> pd.DataFrame:
     df = pd.read_csv(ruta_csv, encoding="utf-8")
 
     # Descartamos "NO SE CONOCE": no es una clase real de gravedad
     df = df[df["GRAVEDAD"].isin(CLASES)].copy()
+
+    if not balancear:
+        print(f"Dataset completo (sin balancear): {len(df)} filas totales")
+        print(df["GRAVEDAD"].value_counts())
+        return df.sample(frac=1, random_state=seed).reset_index(drop=True)
 
     # Undersampling: llevamos las 3 clases al tamaño de la clase minoritaria
     n_min = df["GRAVEDAD"].value_counts().min()
@@ -225,7 +230,11 @@ def main():
     import os
     os.makedirs(CARPETA_SALIDA, exist_ok=True)
 
-    df = cargar_y_balancear(RUTA_CSV, seed=SEMILLA)
+    # Configuración de balanceo y pérdida (Propuesta B)
+    balancear = False  # True: undersampling tradicional, False: dataset completo
+    usar_focal_loss = True  # True: Focal Loss, False: Categorical Crossentropy
+
+    df = cargar_y_balancear(RUTA_CSV, seed=SEMILLA, balancear=balancear)
 
     # Separación df_train / df_test para evitar data leakage
     df_train = df.sample(frac=0.8, random_state=SEMILLA)
@@ -246,6 +255,20 @@ def main():
     y_train = codificar_target(df_train, le)
     y_test = codificar_target(df_test, le)
 
+    # Configurar pesos y función de costo adaptativos
+    if usar_focal_loss and not balancear:
+        class_counts = np.sum(y_train, axis=0)
+        total_samples = y_train.shape[0]
+        k_classes = y_train.shape[1]
+        class_counts[class_counts == 0] = 1
+        adaptive_alpha = total_samples / (k_classes * class_counts)
+        print(f"Pesos adaptativos de clase calculados: {adaptive_alpha}")
+        class_weights = adaptive_alpha
+        cost_function = "focal_loss"
+    else:
+        class_weights = CLASS_WEIGHTS
+        cost_function = "categorical_crossentropy"
+
     columnas = preprocesador.columns_ohe_
     print(f"\nDimensión final de entrada (features tras one-hot): {X_train.shape[1]}")
 
@@ -257,9 +280,7 @@ def main():
     print(f"Train: {X_train.shape[0]} filas | Test: {X_test.shape[0]} filas")
 
     # ── Arquitectura ──────────────────────────────────────────────────────
-    # Softmax + categorical_crossentropy para 3 clases (no hay señal
-    # temporal/secuencial en los datos, así que backprop estándar es
-    # lo correcto -> no BPTT).
+    # Softmax + categorical_crossentropy / focal_loss para 3 clases
     # 3 capas ocultas más Dropout para regularización.
     model = Network(
         layers=[
@@ -271,15 +292,16 @@ def main():
             Dropout(0.3, seed=SEMILLA + 5),
             Dense(32, len(CLASES), activation="softmax", seed=SEMILLA + 6),
         ],
-        cost="categorical_crossentropy",
-        class_weights=CLASS_WEIGHTS,
+        cost=cost_function,
+        class_weights=class_weights,
+        gamma=2.0,
     )
     model.summary()
 
     # ── Hiperparámetros (los que la librería soporta de tu tabla) ─────────
     model.train(
         X_train, y_train,
-        epochs=100,
+        epochs=200,
         alpha=0.01,
         batch_size=32,
         momentum=0.80,

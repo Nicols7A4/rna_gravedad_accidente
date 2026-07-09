@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Simulador de Riesgo de Siniestros</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .simulator-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        @media (max-width: 900px) {
+            .simulator-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .sim-control-panel {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .sim-results-panel {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+        .slider-group {
+            margin-bottom: 20px;
+        }
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        .slider-val {
+            background: #3b82f6;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+        .sim-slider {
+            width: 100%;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .sim-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .sim-slider::-webkit-slider-thumb:hover {
+            background: #1d4ed8;
+        }
+        .sim-select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: #f9fafb;
+            font-size: 0.95em;
+            color: #374151;
+        }
+        .sim-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .live-badge {
+            background: #fee2e2;
+            color: #ef4444;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 15px;
+            width: fit-content;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <span class="logo-icon">🚗</span>
+                <div class="logo-text">
+                    <h1>Predictor de Gravedad</h1>
+                    <p>Siniestros de Tránsito</p>
+                </div>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-btn" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                    <span class="icon">🔮</span>
+                    Predicción
+                </a>
+                <a href="/simulator" class="nav-btn active" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                    <span class="icon">🎮</span>
+                    Simulador
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <div class="tab-header">
+                <h2>🎮 Simulador de Riesgo en Tiempo Real</h2>
+                <p>Mueve los controles para ver de manera interactiva cómo varían las probabilidades de gravedad del siniestro</p>
+            </div>
+
+            <div class="simulator-grid">
+                <!-- PANEL IZQUIERDO: CONTROLES -->
+                <div class="sim-control-panel">
+                    <form id="sim-form">
+                        <!-- EDAD SLIDER -->
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label for="edad">Edad del Conductor</label>
+                                <span class="slider-val" id="edad-val">35 años</span>
+                            </div>
+                            <input type="range" id="edad" name="EDAD" min="15" max="90" value="35" class="sim-slider">
+                        </div>
+
+                        <!-- HORA SLIDER -->
+                        <div class="slider-group">
+                            <div class="slider-header">
+                                <label for="hora">Hora del Siniestro</label>
+                                <span class="slider-val" id="hora-val">12:00</span>
+                            </div>
+                            <input type="range" id="hora" name="HORA" min="0" max="23" value="12" class="sim-slider">
+                        </div>
+
+                        <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+
+                        <!-- SELECTORES -->
+                        <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label for="drunk" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">¿Consumió Alcohol?</label>
+                                <select id="drunk" class="sim-select" name="RESULTADO DEL DOSAJE ETÍLICO CUALITATIVO">
+                                    <option value="NEGATIVO">No (Negativo)</option>
+                                    <option value="POSITIVO">Sí (Positivo)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="vehiculo" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Tipo de Vehículo</label>
+                                <select id="vehiculo" class="sim-select" name="VEHÍCULO">
+                                    <option value="AUTO">Automóvil</option>
+                                    <option value="MOTO">Motocicleta</option>
+                                    <option value="BICICLETA">Bicicleta</option>
+                                    <option value="CAMIONETA RURAL">Camioneta Rural</option>
+                                    <option value="CAMIÓN">Camión de Carga</option>
+                                    <option value="BUS">Bus interprovincial</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="causa" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Causa del Siniestro</label>
+                                <select id="causa" class="sim-select" name="CAUSA">
+                                    <option value="IMPRUDENCIA DEL CONDUCTOR">Imprudencia del Conductor</option>
+                                    <option value="EXCESO DE VELOCIDAD">Exceso de Velocidad</option>
+                                    <option value="EMBRIAGUEZ">Embriaguez</option>
+                                    <option value="CANSANCIO">Cansancio / Sueño</option>
+                                    <option value="FALLA MECÁNICA">Falla Mecánica</option>
+                                    <option value="DESPISTE">Despiste (Otro)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="siniestro" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Clase de Siniestro</label>
+                                <select id="siniestro" class="sim-select" name="CLASE DE SINIESTRO">
+                                    <option value="CHOQUE">Choque / Impacto</option>
+                                    <option value="COLISIÓN">Colisión Múltiple</option>
+                                    <option value="VOLCADURA">Volcadura</option>
+                                    <option value="DESPISTE">Despiste</option>
+                                    <option value="ATROPELLO">Atropello</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="via" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Tipo de Vía</label>
+                                <select id="via" class="sim-select" name="TIPO DE VÍA">
+                                    <option value="AVENIDA">Avenida Metropolitana</option>
+                                    <option value="CALLE">Calle / Jirón</option>
+                                    <option value="CARRETERA PROVINCIAL">Carretera Provincial</option>
+                                    <option value="AUTOPISTA">Autopista / Vía Rápida</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="licencia" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Posee Licencia</label>
+                                <select id="licencia" class="sim-select" name="POSEE LICENCIA">
+                                    <option value="SI">Sí (Posee)</option>
+                                    <option value="NO">No (Sin licencia)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- VALORES POR DEFECTO PARA EL RESTO DE VARIABLES EXIGIDAS POR EL MODELO -->
+                        <input type="hidden" name="TIPO PERSONA" value="CONDUCTOR">
+                        <input type="hidden" name="SEXO" value="MASCULINO">
+                        <input type="hidden" name="ESTADO LICENCIA" value="VIGENTE">
+                        <input type="hidden" name="CLASE_LICENCIA" value="A I">
+                        <input type="hidden" name="¿SE SOMETIÓ A DOSAJE ETÍLICO CUALITATIVO?" value="SI">
+                        <input type="hidden" name="¿SE SOMETIÓ A DOSAJE ETÍLICO CUANTITATIVO?" value="NO">
+                        <input type="hidden" name="CAUSA ESPECIFICA" value="NO CUENTA CON CAUSA ESPECIFICA">
+                        <input type="hidden" name="RED VIAL" value="NACIONAL">
+                        <input type="hidden" name="DEPARTAMENTO" value="LIMA">
+                        <input type="hidden" name="MES" value="ENERO">
+                        <input type="hidden" name="DIA" value="VIERNES">
+                    </form>
+                </div>
+
+                <!-- PANEL DERECHO: RESULTADOS INTERACTIVOS -->
+                <div class="sim-results-panel">
+                    <div class="live-badge">
+                        <div class="dot"></div> En Vivo (Predicción Dinámica)
+                    </div>
+
+                    <h3>Distribución de Riesgo Resultante</h3>
+                    <p style="font-size: 0.9em; color: #6b7280; margin-bottom: 25px;">
+                        Las probabilidades a continuación se recalculan al instante mediante la red neuronal alimentada con las variables especificadas.
+                    </p>
+
+                    <!-- Clase Predicha Principal -->
+                    <div id="sim-main-class" class="resultado-card" style="margin-bottom: 20px; padding: 15px; text-align: center; border-radius: 8px;">
+                        <h4 style="margin: 0; color: #475569; font-size: 0.9em;">SEVERIDAD PREDICHA</h4>
+                        <div id="sim-class-label" style="font-size: 1.8em; font-weight: 700; margin-top: 5px;">--</div>
+                        <div id="sim-confianza" style="font-size: 1em; color: #64748b; margin-top: 2px;">Confianza: --</div>
+                    </div>
+
+                    <!-- Barras de probabilidad -->
+                    <div class="probabilidades">
+                        <h4 style="margin-bottom: 12px; color: #374151;">📊 Probabilidades por Clase</h4>
+                        <div id="sim-prob-bars" class="prob-bars">
+                            <!-- Inyectado dinámicamente por JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>🚗 Simulador de Gravedad de Siniestros v1.0 | Red Neuronal Artificial (neurox)</p>
+    </footer>
+
+    <!-- LÓGICA JAVASCRIPT DEL SIMULADOR -->
+    <script>
+        const CLASES = ["ILESO", "LESIONADO", "FALLECIDO"];
+        const COLORES_CLASES = {
+            "ILESO": { icon: "🟢", color: "#10b981", bg: "#e6fbf2", text: "#065f46" },
+            "LESIONADO": { icon: "🟡", color: "#f59e0b", bg: "#fefbeb", text: "#92400e" },
+            "FALLECIDO": { icon: "🔴", color: "#ef4444", bg: "#fef2f2", text: "#991b1b" }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('sim-form');
+            
+            // Vincular sliders a sus etiquetas de valor
+            const edadInput = document.getElementById('edad');
+            const edadVal = document.getElementById('edad-val');
+            edadInput.addEventListener('input', function() {
+                edadVal.textContent = this.value + ' años';
+            });
+
+            const horaInput = document.getElementById('hora');
+            const horaVal = document.getElementById('hora-val');
+            horaInput.addEventListener('input', function() {
+                horaVal.textContent = String(this.value).padStart(2, '0') + ':00';
+            });
+
+            // Escuchar cambios en cualquier campo del formulario
+            const formFields = form.querySelectorAll('input, select');
+            formFields.forEach(field => {
+                // Escuchamos 'input' en sliders y 'change' en selectores
+                const eventType = field.type === 'range' ? 'input' : 'change';
+                field.addEventListener(eventType, realizarPrediccionSimulador);
+            });
+
+            // Ejecución inicial
+            realizarPrediccionSimulador();
+        });
+
+        function realizarPrediccionSimulador() {
+            const form = document.getElementById('sim-form');
+            const formData = new FormData(form);
+            
+            // Construir JSON
+            const datos = {};
+            formData.forEach((value, key) => {
+                if (key === 'EDAD' || key === 'HORA') {
+                    datos[key] = parseFloat(value);
+                } else {
+                    datos[key] = value;
+                }
+            });
+
+            // Realizar petición asíncrona
+            fetch('/api/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(datos)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    actualizarInterfazSimulador(result);
+                } else {
+                    console.error("Error en simulación:", result.error);
+                }
+            })
+            .catch(error => console.error("Error en fetch simulación:", error));
+        }
+
+        function actualizarInterfazSimulador(result) {
+            const clase = result.prediccion;
+            const confianza = result.confianza;
+            const probs = result.probabilidades;
+
+            // Actualizar tarjeta principal
+            const card = document.getElementById('sim-main-class');
+            const label = document.getElementById('sim-class-label');
+            const conf = document.getElementById('sim-confianza');
+
+            card.style.backgroundColor = COLORES_CLASES[clase].bg;
+            card.style.border = `1px solid ${COLORES_CLASES[clase].color}`;
+            
+            label.textContent = COLORES_CLASES[clase].icon + ' ' + clase;
+            label.style.color = COLORES_CLASES[clase].text;
+            
+            conf.textContent = `Confianza: ${(confianza * 100).toFixed(2)}%`;
+
+            // Actualizar barras de probabilidad
+            const probBars = document.getElementById('sim-prob-bars');
+            probBars.innerHTML = '';
+
+            // Orden fijo para que no salten de posición y la visualización sea estable
+            CLASES.forEach(labelClass => {
+                const prob = probs[labelClass] || 0;
+                const labelLower = labelClass.toLowerCase();
+                
+                const barHTML = `
+                    <div class="prob-bar" style="margin-bottom: 15px;">
+                        <div class="prob-label" style="font-weight: 600; font-size: 0.9em; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                            ${COLORES_CLASES[labelClass].icon} ${labelClass}
+                        </div>
+                        <div class="prob-background" style="background: #f3f4f6; border-radius: 4px; height: 24px; position: relative; overflow: hidden;">
+                            <div class="prob-fill ${labelLower}" style="width: ${prob * 100}%; background: ${COLORES_CLASES[labelClass].color}; height: 100%; border-radius: 4px; transition: width 0.25s ease-out; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; color: white; font-size: 0.85em; font-weight: bold;">
+                                ${(prob * 100).toFixed(1)}%
+                            </div>
+                        </div>
+                    </div>
+                `;
+                probBars.insertAdjacentHTML('beforeend', barHTML);
+            });
+        }
+    </script>
+</body>
+</html>
