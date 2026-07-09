@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚗 Predictor de Gravedad de Siniestros</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <span class="logo-icon">🚗</span>
+                <div class="logo-text">
+                    <h1>Predictor de Gravedad</h1>
+                    <p>Siniestros de Tránsito</p>
+                </div>
+            </div>
+            <nav class="nav">
+                <button class="nav-btn active" data-tab="prediccion">
+                    <span class="icon">🔮</span>
+                    Predicción
+                </button>
+                <button class="nav-btn" data-tab="info">
+                    <span class="icon">📊</span>
+                    Información
+                </button>
+                <button class="nav-btn" data-tab="batch">
+                    <span class="icon">📁</span>
+                    Lote
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <!-- TAB: Predicción Individual -->
+            <section id="tab-prediccion" class="tab-content active">
+                <div class="tab-header">
+                    <h2>🔮 Realizar Predicción Individual</h2>
+                    <p>Ingresa los datos del siniestro para obtener una predicción</p>
+                </div>
+
+                <form id="formulario-prediccion" class="form-container">
+                    <!-- Datos Numéricos -->
+                    <div class="form-section">
+                        <h3>📊 Datos Numéricos</h3>
+                        <div class="form-group">
+                            <label for="edad">Edad del Conductor</label>
+                            <div class="input-wrapper">
+                                <input type="number" id="edad" name="edad" min="0" max="120" value="35" required>
+                                <span class="input-unit">años</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datos Categóricos -->
+                    <div class="form-section">
+                        <h3>🏷️ Características del Siniestro</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="tipo_persona">Tipo de Persona</label>
+                                <select id="tipo_persona" name="TIPO PERSONA" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="CONDUCTOR">Conductor</option>
+                                    <option value="PASAJERO">Pasajero</option>
+                                    <option value="PEATÓN">Peatón</option>
+                                    <option value="CICLISTA">Ciclista</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="sexo">Sexo</label>
+                                <select id="sexo" name="SEXO" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="MASCULINO">Masculino</option>
+                                    <option value="FEMENINO">Femenino</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="posee_licencia">¿Posee Licencia?</label>
+                                <select id="posee_licencia" name="POSEE LICENCIA" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="SÍ">Sí</option>
+                                    <option value="NO">No</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="estado_licencia">Estado de Licencia</label>
+                                <select id="estado_licencia" name="ESTADO LICENCIA" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="VIGENTE">Vigente</option>
+                                    <option value="VENCIDA">Vencida</option>
+                                    <option value="SUSPENDIDA">Suspendida</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="clase_licencia">Clase de Licencia</label>
+                                <select id="clase_licencia" name="CLASE_LICENCIA" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                    <option value="E">E</option>
+                                    <option value="F">F</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="dosaje_cualitativo">¿Dosaje Etílico Cualitativo?</label>
+                                <select id="dosaje_cualitativo" name="¿SE SOMETIÓ A DOSAJE ETÍLICO CUALITATIVO?" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="SÍ">Sí</option>
+                                    <option value="NO">No</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="resultado_dosaje">Resultado Dosaje Etílico</label>
+                                <select id="resultado_dosaje" name="RESULTADO DEL DOSAJE ETÍLICO CUALITATIVO" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="POSITIVO">Positivo</option>
+                                    <option value="NEGATIVO">Negativo</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="dosaje_cuantitativo">¿Dosaje Etílico Cuantitativo?</label>
+                                <select id="dosaje_cuantitativo" name="¿SE SOMETIÓ A DOSAJE ETÍLICO CUANTITATIVO?" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="SÍ">Sí</option>
+                                    <option value="NO">No</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="vehiculo">Tipo de Vehículo</label>
+                                <select id="vehiculo" name="VEHÍCULO" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="AUTO">Auto</option>
+                                    <option value="MOTO">Moto</option>
+                                    <option value="BICICLETA">Bicicleta</option>
+                                    <option value="CAMIÓN">Camión</option>
+                                    <option value="BUS">Bus</option>
+                                    <option value="OTRO">Otro</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="clase_siniestro">Clase de Siniestro</label>
+                                <select id="clase_siniestro" name="CLASE DE SINIESTRO" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="COLISIÓN">Colisión</option>
+                                    <option value="VOLCADURA">Volcadura</option>
+                                    <option value="CAÍDA">Caída</option>
+                                    <option value="CHOQUE">Choque</option>
+                                    <option value="OTRO">Otro</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="causa">Causa</label>
+                                <select id="causa" name="CAUSA" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="EXCESO DE VELOCIDAD">Exceso de Velocidad</option>
+                                    <option value="EMBRIAGUEZ">Embriaguez</option>
+                                    <option value="CANSANCIO">Cansancio</option>
+                                    <option value="DISTRACCIÓN">Distracción</option>
+                                    <option value="OTRO">Otro</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="causa_especifica">Causa Específica</label>
+                                <select id="causa_especifica" name="CAUSA ESPECIFICA" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="NO RESPETA SEMÁFORO">No Respeta Semáforo</option>
+                                    <option value="EXCESO VELOCIDAD">Exceso Velocidad</option>
+                                    <option value="CRUCE INDEBIDO">Cruce Indebido</option>
+                                    <option value="OTRO">Otro</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="tipo_via">Tipo de Vía</label>
+                                <select id="tipo_via" name="TIPO DE VÍA" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="AVENIDA">Avenida</option>
+                                    <option value="CALLE">Calle</option>
+                                    <option value="CARRETERA">Carretera</option>
+                                    <option value="AUTOPISTA">Autopista</option>
+                                    <option value="OTRO">Otro</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="red_vial">Red Vial</label>
+                                <select id="red_vial" name="RED VIAL" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="NACIONAL">Nacional</option>
+                                    <option value="REGIONAL">Regional</option>
+                                    <option value="LOCAL">Local</option>
+                                    <option value="PRIVADA">Privada</option>
+                                    <option value="OTRO">Otro</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="departamento">Departamento</label>
+                                <select id="departamento" name="DEPARTAMENTO" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="LIMA">Lima</option>
+                                    <option value="AREQUIPA">Arequipa</option>
+                                    <option value="CUSCO">Cusco</option>
+                                    <option value="TRUJILLO">Trujillo</option>
+                                    <option value="OTRO">Otro</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="mes">Mes</label>
+                                <select id="mes" name="MES" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="ENERO">Enero</option>
+                                    <option value="FEBRERO">Febrero</option>
+                                    <option value="MARZO">Marzo</option>
+                                    <option value="ABRIL">Abril</option>
+                                    <option value="MAYO">Mayo</option>
+                                    <option value="JUNIO">Junio</option>
+                                    <option value="JULIO">Julio</option>
+                                    <option value="AGOSTO">Agosto</option>
+                                    <option value="SEPTIEMBRE">Septiembre</option>
+                                    <option value="OCTUBRE">Octubre</option>
+                                    <option value="NOVIEMBRE">Noviembre</option>
+                                    <option value="DICIEMBRE">Diciembre</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="dia">Día de la Semana</label>
+                                <select id="dia" name="DIA" required>
+                                    <option value="">-- Selecciona --</option>
+                                    <option value="LUNES">Lunes</option>
+                                    <option value="MARTES">Martes</option>
+                                    <option value="MIÉRCOLES">Miércoles</option>
+                                    <option value="JUEVES">Jueves</option>
+                                    <option value="VIERNES">Viernes</option>
+                                    <option value="SÁBADO">Sábado</option>
+                                    <option value="DOMINGO">Domingo</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="hora">Hora del Día</label>
+                                <select id="hora" name="HORA" required>
+                                    <option value="">-- Selecciona --</option>
+                                    {% for i in range(24) %}
+                                        <option value="{{ i }}">{{ '%02d:00' % i }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-large">
+                        <span class="icon">🔮</span> Realizar Predicción
+                    </button>
+                </form>
+
+                <!-- Resultados -->
+                <div id="resultados" class="resultados-container" style="display: none;">
+                    <div id="resultado-card" class="resultado-card">
+                        <div class="resultado-header">
+                            <h3>Resultado de la Predicción</h3>
+                        </div>
+                        <div class="resultado-main">
+                            <div id="clase-predicida" class="clase-predicida">
+                                <span class="icono-clase"></span>
+                                <span class="nombre-clase"></span>
+                            </div>
+                            <div id="confianza-container" class="confianza-container">
+                                <div class="confianza-valor">
+                                    <span id="confianza-pct">0%</span>
+                                </div>
+                                <div class="confianza-label">Confianza</div>
+                            </div>
+                        </div>
+                        <div class="probabilidades">
+                            <h4>📊 Probabilidades por Clase</h4>
+                            <div id="prob-bars" class="prob-bars"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="error-mensaje" class="error-mensaje" style="display: none;"></div>
+            </section>
+
+            <!-- TAB: Información -->
+            <section id="tab-info" class="tab-content">
+                <div class="tab-header">
+                    <h2>📊 Información del Modelo</h2>
+                    <p>Detalles técnicos y arquitectura de la red neuronal</p>
+                </div>
+
+                <div class="info-container">
+                    <div class="info-card">
+                        <h3>🎯 Métricas del Modelo</h3>
+                        <div class="metrics-grid">
+                            <div class="metric">
+                                <span class="metric-value" id="metric-accuracy">--</span>
+                                <span class="metric-label">Accuracy (Test)</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-value">3</span>
+                                <span class="metric-label">Capas Ocultas</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-value" id="metric-features">--</span>
+                                <span class="metric-label">Features</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>🏗️ Arquitectura de la Red</h3>
+                        <div class="architecture">
+                            <div class="layer">
+                                <strong>Entrada</strong>
+                                <p>Features numéricos + categóricos (one-hot)</p>
+                            </div>
+                            <div class="arrow">→</div>
+                            <div class="layer">
+                                <strong>Capa 1</strong>
+                                <p>128 neuronas<br>Activación: ReLU</p>
+                            </div>
+                            <div class="arrow">→</div>
+                            <div class="layer">
+                                <strong>Capa 2</strong>
+                                <p>64 neuronas<br>Activación: ReLU</p>
+                            </div>
+                            <div class="arrow">→</div>
+                            <div class="layer">
+                                <strong>Capa 3</strong>
+                                <p>32 neuronas<br>Activación: ReLU</p>
+                            </div>
+                            <div class="arrow">→</div>
+                            <div class="layer">
+                                <strong>Salida</strong>
+                                <p>3 neuronas (Softmax)<br>ILESO | LESIONADO | FALLECIDO</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>⚙️ Hiperparámetros</h3>
+                        <table class="hyper-table">
+                            <tr>
+                                <td>Epochs</td>
+                                <td><strong>100</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Learning Rate (α)</td>
+                                <td><strong>0.01</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Batch Size</td>
+                                <td><strong>32</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Momentum</td>
+                                <td><strong>0.80</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Weight Decay</td>
+                                <td><strong>1e-4</strong></td>
+                            </tr>
+                            <tr>
+                                <td>Clip Norm</td>
+                                <td><strong>2.0</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB: Predicción en Lote -->
+            <section id="tab-batch" class="tab-content">
+                <div class="tab-header">
+                    <h2>📁 Predicciones en Lote</h2>
+                    <p>Carga un archivo CSV para realizar predicciones múltiples</p>
+                </div>
+
+                <div class="batch-container">
+                    <div class="upload-area" id="upload-area">
+                        <div class="upload-icon">📤</div>
+                        <h3>Carga un archivo CSV</h3>
+                        <p>Arrastra y suelta aquí o haz clic</p>
+                        <input type="file" id="file-input" accept=".csv" style="display: none;">
+                    </div>
+
+                    <div id="batch-preview" style="display: none;">
+                        <h3>Vista Previa</h3>
+                        <table id="preview-table" class="preview-table"></table>
+                        <button type="button" class="btn btn-primary" id="btn-predecir-batch">
+                            <span class="icon">🔮</span> Predecir Lote
+                        </button>
+                    </div>
+
+                    <div id="batch-results" style="display: none;">
+                        <h3>Resultados</h3>
+                        <div id="batch-stats" class="batch-stats"></div>
+                        <table id="results-table" class="results-table"></table>
+                        <button type="button" class="btn btn-secondary" id="btn-descargar-csv">
+                            <span class="icon">📥</span> Descargar Resultados
+                        </button>
+                    </div>
+                </div>
+
+                <div id="batch-error" class="error-mensaje" style="display: none;"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>🚗 Predictor de Gravedad de Siniestros v1.0 | Red Neuronal Artificial (neurox)</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
