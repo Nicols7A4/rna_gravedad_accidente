@@ -109,7 +109,7 @@ def cargar_modelo():
         # Entrenar
         model.train(
             X_train, y_train,
-            epochs=100,
+            epochs=200,
             alpha=0.01,
             batch_size=32,
             momentum=0.80,
