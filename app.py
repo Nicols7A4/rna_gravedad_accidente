@@ -1,17 +1,26 @@
 """
 app.py
 ======
-Aplicación Flask para predicción de gravedad de siniestros.
+Servidor web interactivo desarrollado en Flask.
+Proporciona la interfaz del Simulador Vial y expone endpoints de predicción dinámica API JSON.
+Carga eficientemente el pipeline pre-entrenado guardado en un archivo Pickle (.pkl) en menos de 1 segundo.
 
-Uso:
-    python app.py
-    Luego abre: http://localhost:5000
+Flujo de Operación:
+------------------
+1. Inicialización: Carga del modelo persistido o re-entrenamiento en caso de ausencia.
+2. Ruteo Flask:
+   - Redirección por defecto '/' a '/simulator'.
+   - '/simulator': Renderizado del Simulador Básico (parámetros preestablecidos).
+   - '/simulator-complete': Renderizado del Simulador Completo (los 16 selectores interactivos).
+   - '/api/predict' [POST]: Endpoint REST para predicciones en tiempo real mediante el preprocesador memorizado.
 """
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import numpy as np
 import pandas as pd
 import json
+import os
+import pickle
 from neurox import Network, Dense, Dropout, Normalizer, LabelEncoder, train_test_split
 from prueba_entrenamiento import (
     CLASES, FEATURES_NUMERICAS, FEATURES_CATEGORICAS,
@@ -22,30 +31,34 @@ from prueba_entrenamiento import (
 
 app = Flask(__name__)
 
-# Variables globales para almacenar el modelo
+# Diccionario estructurado en memoria para contener los componentes del pipeline de inferencia
 modelo_datos = {
-    'model': None,
-    'norm': None,
-    'le': None,
-    'columnas': None,
-    'accuracy': None,
-    'preprocesador': None
+    'model': None,          # Instancia de neurox.Network
+    'norm': None,           # Instancia de neurox.Normalizer
+    'le': None,             # LabelEncoder para decodificar las clases de salida
+    'columnas': None,       # Estructura e indexado One-Hot
+    'accuracy': None,       # Precisión histórica de prueba obtenida
+    'preprocesador': None   # Instancia de SiniestrosPreprocessor ajustada en entrenamiento
 }
 
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Funciones para cargar el modelo
+# CARGA Y SERIALIZACIÓN DE PIPELINE DE INFERENCIA
 # ─────────────────────────────────────────────────────────────────────────────
 
 def cargar_modelo():
-    """Carga o entrena el modelo de red neuronal."""
+    """
+    Carga de forma perezosa (lazy load) el modelo y preprocesadores.
+    Si existe outputs/modelo_guardado.pkl, carga el archivo binario instantáneamente.
+    Si no existe, ejecuta el entrenamiento desde cero antes de arrancar Flask.
+    """
     try:
         if modelo_datos['model'] is not None:
             return modelo_datos
         
-        # 1. Intentar cargar respaldo pre-entrenado
-        import os
-        import pickle
         path_respaldo = os.path.join("outputs", "modelo_guardado.pkl")
+        
+        # 1. Intentar cargar respaldo Pickle
         if os.path.exists(path_respaldo):
             print(f"[RESPALDO] Cargando modelo guardado de: {path_respaldo}...")
             with open(path_respaldo, "rb") as f:
@@ -59,34 +72,35 @@ def cargar_modelo():
             print("[RESPALDO] ¡Modelo cargado exitosamente en menos de 1 segundo!")
             return modelo_datos
         
+        # 2. Re-entrenamiento automático si no existe el respaldo
         print("[RESPALDO] No se encontró modelo guardado. Entrenando uno nuevo...")
-        # Configuración de balanceo y pérdida (Propuesta B)
         balancear = False
         usar_focal_loss = True
         
-        # Cargar y balancear datos
         df = cargar_y_balancear(RUTA_CSV, seed=SEMILLA, balancear=balancear)
         
-        # Separar datos para evitar data leakage (aleatorio sin semilla fija)
+        # Split Train/Test aleatorio para validación
         df_train = df.sample(frac=0.8, random_state=None)
         df_test = df.drop(df_train.index).reset_index(drop=True)
         df_train = df_train.reset_index(drop=True)
         
+        # Preprocesador
         preprocesador = SiniestrosPreprocessor()
         preprocesador.fit(df_train)
         
         X_train = preprocesador.transform(df_train)
         X_test = preprocesador.transform(df_test)
         
+        # Target
         le = LabelEncoder()
-        le.classes_ = np.array(CLASES)
+        le.classes = np.array(CLASES)
         le._mapping = {c: i for i, c in enumerate(CLASES)}
         le._inverse = {i: c for c, i in le._mapping.items()}
         
         y_train = codificar_target(df_train, le)
         y_test = codificar_target(df_test, le)
         
-        # Configurar pesos y función de costo adaptativos
+        # Coste y pesos sensibles al costo
         if usar_focal_loss and not balancear:
             class_counts = np.sum(y_train, axis=0)
             total_samples = y_train.shape[0]
@@ -109,7 +123,7 @@ def cargar_modelo():
         X_train = norm.fit_transform(X_train)
         X_test = norm.transform(X_test)
         
-        # Construir modelo con Dropout y semillas diferentes
+        # Red neuronal
         model = Network(
             layers=[
                 Dense(X_train.shape[1], 128, activation="relu", seed=SEMILLA),
@@ -125,14 +139,14 @@ def cargar_modelo():
             gamma=2.0,
         )
         
+        # Entrenamiento corto de respaldo
         print("Entrenando modelo...")
-        # Entrenar
         model.train(
             X_train, y_train,
             epochs=100,
             alpha=0.001,
-            batch_size=32,
-            momentum=0.80, # Ignorado por Adam
+            batch_size=64,
+            momentum=0.80,
             weight_decay=1e-4,
             clip_norm=2.0,
             seed=SEMILLA,
@@ -144,7 +158,7 @@ def cargar_modelo():
         res_test = model.evaluate(X_test, y_test)
         accuracy = res_test['accuracy']
         
-        # Guardar en variables globales
+        # Almacenar en diccionario global
         modelo_datos['model'] = model
         modelo_datos['norm'] = norm
         modelo_datos['le'] = le
@@ -152,7 +166,7 @@ def cargar_modelo():
         modelo_datos['accuracy'] = accuracy
         modelo_datos['preprocesador'] = preprocesador
         
-        # Guardar respaldo para evitar re-entrenamiento posterior
+        # Guardar en outputs
         try:
             os.makedirs("outputs", exist_ok=True)
             with open(path_respaldo, "wb") as f:
@@ -166,18 +180,20 @@ def cargar_modelo():
     except FileNotFoundError:
         return None
 
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Rutas de la aplicación
+# RUTAS FLASK (CONTROLADORES)
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
-    """Página principal - Redirige al simulador por defecto"""
+    """Redirecciona al simulador dinámico por defecto."""
     return redirect(url_for('simulator'))
+
 
 @app.route('/api/info')
 def api_info():
-    """Retorna información del modelo"""
+    """Retorna metadatos técnicos en JSON sobre el modelo cargado."""
     if modelo_datos['model'] is None:
         cargar_modelo()
     
@@ -188,32 +204,35 @@ def api_info():
         'features_categoricas': FEATURES_CATEGORICAS,
     })
 
+
 @app.route('/api/predict', methods=['POST'])
 def api_predict():
-    """Realiza predicción individual"""
+    """
+    Inferencia Individual en tiempo real.
+    Recibe un JSON con los valores del formulario, aplica el preprocesamiento
+    alineado (one-hot) y normalización del set de entrenamiento, y calcula
+    las probabilidades Softmax de cada clase.
+    """
     try:
         datos = request.get_json()
         
-        # Asegurarse de que el modelo está cargado
         if modelo_datos['model'] is None:
             cargar_modelo()
         
-        # Crear DataFrame con los datos ingresados
+        # Crear DataFrame temporal a partir de los datos JSON del formulario
         df_input = pd.DataFrame([datos])
         
-        # Usar el preprocesador entrenado sin data leakage ni bug de categorías raras
+        # Transformar alineando One-Hot sin Data Leakage
         X_input = modelo_datos['preprocesador'].transform(df_input)
-        
-        # Normalizar
         X_input = modelo_datos['norm'].transform(X_input)
         
-        # Predicción
+        # Ejecutar propagación hacia adelante (forward pass) de la red
         y_pred = modelo_datos['model'].predict(X_input)
         pred_clase = int(np.argmax(y_pred[0]))
         pred_label = CLASES[pred_clase]
         pred_confianza = float(y_pred[0][pred_clase])
         
-        # Probabilidades de todas las clases
+        # Mapeo de probabilidades
         probabilidades = {CLASES[i]: float(y_pred[0][i]) for i in range(len(CLASES))}
         
         return jsonify({
@@ -230,9 +249,10 @@ def api_predict():
             'error': str(e)
         }), 400
 
+
 @app.route('/api/predict-batch', methods=['POST'])
 def api_predict_batch():
-    """Realiza predicciones en lote"""
+    """Inferencia por lotes (Batch prediction)."""
     try:
         datos = request.get_json()
         registros = datos.get('registros', [])
@@ -240,20 +260,14 @@ def api_predict_batch():
         if not registros:
             return jsonify({'success': False, 'error': 'No hay registros'}), 400
         
-        # Asegurarse de que el modelo está cargado
         if modelo_datos['model'] is None:
             cargar_modelo()
         
-        # Crear DataFrame
         df_input = pd.DataFrame(registros)
-        
-        # Usar el preprocesador entrenado sin data leakage ni bug de categorías raras
         X = modelo_datos['preprocesador'].transform(df_input)
-        
-        # Normalizar
         X = modelo_datos['norm'].transform(X)
         
-        # Predicciones
+        # Batch Predict
         y_pred = modelo_datos['model'].predict(X)
         
         resultados = []
@@ -281,19 +295,21 @@ def api_predict_batch():
             'error': str(e)
         }), 400
 
+
 @app.route('/simulator')
 def simulator():
-    """Página del simulador interactivo de riesgo vial (Básico)"""
+    """Renderiza el Simulador de Riesgos Básico (controles sliders simplificados)."""
     return render_template('simulator.html', clases=CLASES)
+
 
 @app.route('/simulator-complete')
 def simulator_complete():
-    """Página del simulador interactivo de riesgo vial (Completo)"""
+    """Renderiza el Simulador de Riesgos Completo (con 16 selectores interactivos)."""
     return render_template('simulator_complete.html', clases=CLASES)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Iniciar servidor
+# EXECUCIÓN DEL SERVIDOR LOCAL
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == '__main__':
