@@ -115,7 +115,7 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
+
     <header class="header">
         <div class="container">
             <div class="logo">
@@ -146,10 +146,10 @@
             </div>
 
             <div class="simulator-grid">
-                <!-- PANEL IZQUIERDO: CONTROLES -->
+
                 <div class="sim-control-panel">
                     <form id="sim-form">
-                        <!-- EDAD SLIDER -->
+
                         <div class="slider-group">
                             <div class="slider-header">
                                 <label for="edad">Edad del Conductor</label>
@@ -158,7 +158,6 @@
                             <input type="range" id="edad" name="EDAD" min="15" max="90" value="35" class="sim-slider">
                         </div>
 
-                        <!-- HORA SLIDER -->
                         <div class="slider-group">
                             <div class="slider-header">
                                 <label for="hora">Hora del Siniestro</label>
@@ -169,7 +168,6 @@
 
                         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
 
-                        <!-- SELECTORES -->
                         <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div class="form-group">
                                 <label for="drunk" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">¿Consumió Alcohol?</label>
@@ -275,7 +273,6 @@
                             </div>
                         </div>
 
-                        <!-- VALORES POR DEFECTO PARA EL RESTO DE VARIABLES EXIGIDAS POR EL MODELO -->
                         <input type="hidden" name="SEXO" value="MASCULINO">
                         <input type="hidden" name="ESTADO LICENCIA" value="VIGENTE">
                         <input type="hidden" name="CLASE_LICENCIA" value="A I">
@@ -288,7 +285,6 @@
                     </form>
                 </div>
 
-                <!-- PANEL DERECHO: RESULTADOS INTERACTIVOS -->
                 <div class="sim-results-panel">
                     <div class="live-badge">
                         <div class="dot"></div> En Vivo (Predicción Dinámica)
@@ -299,18 +295,16 @@
                         Las probabilidades a continuación se recalculan al instante mediante la red neuronal alimentada con las variables especificadas.
                     </p>
 
-                    <!-- Clase Predicha Principal -->
                     <div id="sim-main-class" class="resultado-card" style="margin-bottom: 20px; padding: 15px; text-align: center; border-radius: 8px;">
                         <h4 style="margin: 0; color: #475569; font-size: 0.9em;">SEVERIDAD PREDICHA</h4>
                         <div id="sim-class-label" style="font-size: 1.8em; font-weight: 700; margin-top: 5px;">--</div>
                         <div id="sim-confianza" style="font-size: 1em; color: #64748b; margin-top: 2px;">Confianza: --</div>
                     </div>
 
-                    <!-- Barras de probabilidad -->
                     <div class="probabilidades">
                         <h4 style="margin-bottom: 12px; color: #374151;">📊 Probabilidades por Clase</h4>
                         <div id="sim-prob-bars" class="prob-bars">
-                            <!-- Inyectado dinámicamente por JS -->
+
                         </div>
                     </div>
                 </div>
@@ -322,7 +316,6 @@
         <p>🚗 Simulador de Gravedad de Siniestros v1.0 | Red Neuronal Artificial (neurox)</p>
     </footer>
 
-    <!-- LÓGICA JAVASCRIPT DEL SIMULADOR -->
     <script>
         const CLASES = ["ILESO", "LESIONADO", "FALLECIDO"];
         const COLORES_CLASES = {
@@ -333,8 +326,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('sim-form');
-            
-            // Vincular sliders a sus etiquetas de valor
+
             const edadInput = document.getElementById('edad');
             const edadVal = document.getElementById('edad-val');
             edadInput.addEventListener('input', function() {
@@ -347,23 +339,20 @@
                 horaVal.textContent = String(this.value).padStart(2, '0') + ':00';
             });
 
-            // Escuchar cambios en cualquier campo del formulario
             const formFields = form.querySelectorAll('input, select');
             formFields.forEach(field => {
-                // Escuchamos 'input' en sliders y 'change' en selectores
+
                 const eventType = field.type === 'range' ? 'input' : 'change';
                 field.addEventListener(eventType, realizarPrediccionSimulador);
             });
 
-            // Ejecución inicial
             realizarPrediccionSimulador();
         });
 
         function realizarPrediccionSimulador() {
             const form = document.getElementById('sim-form');
             const formData = new FormData(form);
-            
-            // Construir JSON
+
             const datos = {};
             formData.forEach((value, key) => {
                 if (key === 'EDAD' || key === 'HORA') {
@@ -373,7 +362,6 @@
                 }
             });
 
-            // Realizar petición asíncrona
             fetch('/api/predict', {
                 method: 'POST',
                 headers: {
@@ -397,28 +385,25 @@
             const confianza = result.confianza;
             const probs = result.probabilidades;
 
-            // Actualizar tarjeta principal
             const card = document.getElementById('sim-main-class');
             const label = document.getElementById('sim-class-label');
             const conf = document.getElementById('sim-confianza');
 
             card.style.backgroundColor = COLORES_CLASES[clase].bg;
             card.style.border = `1px solid ${COLORES_CLASES[clase].color}`;
-            
+
             label.textContent = COLORES_CLASES[clase].icon + ' ' + clase;
             label.style.color = COLORES_CLASES[clase].text;
-            
+
             conf.textContent = `Confianza: ${(confianza * 100).toFixed(2)}%`;
 
-            // Actualizar barras de probabilidad
             const probBars = document.getElementById('sim-prob-bars');
             probBars.innerHTML = '';
 
-            // Orden fijo para que no salten de posición y la visualización sea estable
             CLASES.forEach(labelClass => {
                 const prob = probs[labelClass] || 0;
                 const labelLower = labelClass.toLowerCase();
-                
+
                 const barHTML = `
                     <div class="prob-bar" style="margin-bottom: 15px;">
                         <div class="prob-label" style="font-weight: 600; font-size: 0.9em; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">

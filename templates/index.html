@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <!-- Header -->
+
     <header class="header">
         <div class="container">
             <div class="logo">
@@ -40,7 +40,7 @@
 
     <main class="main">
         <div class="container">
-            <!-- TAB: Predicción Individual -->
+
             <section id="tab-prediccion" class="tab-content active">
                 <div class="tab-header">
                     <h2>🔮 Realizar Predicción Individual</h2>
@@ -48,7 +48,7 @@
                 </div>
 
                 <form id="formulario-prediccion" class="form-container">
-                    <!-- Datos Numéricos -->
+
                     <div class="form-section">
                         <h3>📊 Datos Numéricos</h3>
                         <div class="form-group">
@@ -60,7 +60,6 @@
                         </div>
                     </div>
 
-                    <!-- Datos Categóricos -->
                     <div class="form-section">
                         <h3>🏷️ Características del Siniestro</h3>
                         <div class="form-grid">
@@ -292,7 +291,6 @@
                     </button>
                 </form>
 
-                <!-- Resultados -->
                 <div id="resultados" class="resultados-container" style="display: none;">
                     <div id="resultado-card" class="resultado-card">
                         <div class="resultado-header">
@@ -320,7 +318,6 @@
                 <div id="error-mensaje" class="error-mensaje" style="display: none;"></div>
             </section>
 
-            <!-- TAB: Información -->
             <section id="tab-info" class="tab-content">
                 <div class="tab-header">
                     <h2>📊 Información del Modelo</h2>
@@ -408,7 +405,6 @@
                 </div>
             </section>
 
-            <!-- TAB: Predicción en Lote -->
             <section id="tab-batch" class="tab-content">
                 <div class="tab-header">
                     <h2>📁 Predicciones en Lote</h2>
@@ -446,7 +442,6 @@
         </div>
     </main>
 
-    <!-- Footer -->
     <footer class="footer">
         <p>🚗 Predictor de Gravedad de Siniestros v1.0 | Red Neuronal Artificial (neurox)</p>
     </footer>

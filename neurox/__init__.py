@@ -1,24 +1,3 @@
-"""
-neurox — biblioteca de redes neuronales desde cero
-====================================================
-Uso básico:
-
-    from neurox import Network, Dense
-
-    model = Network(
-        layers=[
-            Dense(6, 16, activation='relu'),
-            Dense(16, 1, activation='sigmoid')
-        ],
-        cost='binary_crossentropy'
-    )
-
-    model.train(X_train, y_train, epochs=1000, alpha=0.05)
-    model.plot_cost()
-    result = model.evaluate(X_test, y_test)
-    print(result)
-"""
-
 from neurox.layers        import Dense, Dropout
 from neurox.network       import Network
 from neurox.activations   import list_activations
