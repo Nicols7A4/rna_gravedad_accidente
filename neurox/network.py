@@ -1,53 +1,15 @@
-"""
-neurox.network
-=============
-Clase Network: Contenedor principal de la red neuronal feedforward.
-Encadena capas secuenciales, coordina el forward pass, ejecuta el backward pass
-para retropropagar el gradiente, calcula costos y optimiza los parámetros de la red.
-
-
-Uso:
-    from neurox import Network, Dense
-
-    model = Network(
-        layers=[
-            Dense(6, 16, activation='relu'),
-            Dense(16, 1, activation='sigmoid')
-        ],
-        cost='binary_crossentropy'
-    )
-
-    history = model.train(X_train, y_train, epochs=1000, alpha=0.05)
-    model.plot_cost()
-    precision = model.evaluate(X_test, y_test)
-    y_pred = model.predict(X_test)
-
-"""
-
 import numpy as np
 from neurox.costs import get_cost, weighted_categorical_crossentropy
 
-
 class Network:
-    """
-    Representa una Red Neuronal Artificial multicapa secuencial.
-    """
 
     def __init__(self, layers: list, cost: str = 'mse', class_weights=None, gamma: float = 2.0):
-        """
-        Parámetros
-        ----------
-        layers : list — Lista secuencial de instancias de capas (Dense, Dropout).
-        cost : str — Identificador de la función de coste ('mse', 'binary_crossentropy', 'categorical_crossentropy', 'focal_loss').
-        class_weights : list|None — Vector de pesos por clase para el aprendizaje sensible al costo.
-        gamma : float — Factor de modulación para la Focal Loss (por defecto 2.0).
-        """
+
         self.layers = layers
         self.cost_name = cost
         self.class_weights = class_weights
         self.gamma = gamma
 
-        # ── Configuración de Función de Costo ─────────────────────────────────
         if cost == 'focal_loss':
             from neurox.costs import get_focal_loss
             n_out = layers[-1].n_neurons
@@ -72,14 +34,10 @@ class Network:
         else:
             self.cost_fn, self.cost_grad = get_cost(cost)
 
-        self.history = []   # Historial de coste para graficar convergencia
-
-    # ── MÓDULO DE SERIALIZACIÓN (PICKLE COMPATIBILITY) ───────────────────────
-    # Debido a que las funciones de coste dinámicas (closures) no pueden ser
-    # serializadas directamente por pickle, implementamos bypasses en el estado.
+        self.history = []
 
     def __getstate__(self):
-        """Remueve los closures locales no serializables del estado."""
+
         state = self.__dict__.copy()
         if 'cost_fn' in state:
             del state['cost_fn']
@@ -88,7 +46,7 @@ class Network:
         return state
 
     def __setstate__(self, state):
-        """Restaura los closures locales de pérdida al deserializar el modelo."""
+
         self.__dict__.update(state)
         if hasattr(self, 'cost_name'):
             if self.cost_name == 'focal_loss':
@@ -103,22 +61,18 @@ class Network:
         else:
             self.cost_fn, self.cost_grad = None, None
 
-    # ── PROPAGACIÓN HACIA ADELANTE (FORWARD) ─────────────────────────────────
-
     def _forward(self, X: np.ndarray, training: bool = False) -> np.ndarray:
-        """Propaga la entrada secuencialmente a través de las capas de la red."""
+
         out = X
         for layer in self.layers:
             out = layer.forward(out, training=training)
         return out
 
-    # ── RETROPROPAGACIÓN DE GRADIENTES (BACKWARD) ─────────────────────────────
-
     def _backward(self, y_pred: np.ndarray, y_true: np.ndarray,
                   alpha: float, momentum: float = 0.0,
                   weight_decay: float = 0.0, clip_norm: float = None,
                   optimizer: str = 'sgd') -> None:
-        """Propaga el error de salida hacia atrás y actualiza los parámetros."""
+
         grad = self.cost_grad(y_pred, y_true)
         for layer in reversed(self.layers):
             if clip_norm is not None:
@@ -129,16 +83,11 @@ class Network:
 
     @staticmethod
     def _clip_grad(grad: np.ndarray, max_norm: float) -> np.ndarray:
-        """
-        Recorta el gradiente local si su norma L2 supera el umbral (Gradient Clipping).
-        Estabiliza el entrenamiento y evita gradientes explosivos en mini-lotes.
-        """
+
         norm = np.linalg.norm(grad)
         if norm > max_norm:
             grad = grad * (max_norm / (norm + 1e-12))
         return grad
-
-    # ── ENTRENAMIENTO (TRAINING LOOP) ────────────────────────────────────────
 
     def train(self, X: np.ndarray, y: np.ndarray,
               epochs: int = 1000,
@@ -151,13 +100,10 @@ class Network:
               seed: int = None,
               optimizer: str = 'sgd',
               verbose: int = 10) -> list:
-        """
-        Entrena la red mediante Gradiente Descendiente Estocástico (SGD) o Adam.
-        """
+
         self.history = []
         X, y = np.array(X), np.array(y)
 
-        # Forzar formato bidimensional para el vector objetivo
         if y.ndim == 1:
             y = y.reshape(-1, 1)
 
@@ -166,7 +112,6 @@ class Network:
         bs = batch_size if batch_size is not None else m
 
         for e in range(epochs):
-            # Barajado de lotes para mitigar correlaciones locales (Shuffle)
             if shuffle and batch_size is not None:
                 idx = rng.permutation(m)
                 X_epoch, y_epoch = X[idx], y[idx]
@@ -179,12 +124,9 @@ class Network:
                 X_batch = X_epoch[start:end]
                 y_batch = y_epoch[start:end]
 
-                # 1. Forward Pass
                 y_pred = self._forward(X_batch, training=True)
-                # 2. Cost
                 loss = self.cost_fn(y_pred, y_batch)
                 epoch_loss_sum += loss * len(X_batch)
-                # 3. Backward Pass
                 self._backward(y_pred, y_batch, alpha,
                                 momentum=momentum,
                                 weight_decay=weight_decay,
@@ -200,17 +142,13 @@ class Network:
         print(f"(Época {epochs - 1:>6}) Costo: {self.history[-1]:.6f}")
         return self.history
 
-    # ── PREDICCIÓN E INFERENCIA ──────────────────────────────────────────────
-
     def predict(self, X: np.ndarray) -> np.ndarray:
-        """Realiza el paso forward sin activar regularización (Dropout)."""
+
         return self._forward(np.array(X), training=False)
 
     def predict_classes(self, X: np.ndarray,
                         threshold: float = 0.5) -> np.ndarray:
-        """
-        Determina las etiquetas de salida en función de las probabilidades.
-        """
+
         probs = self.predict(X)
         if probs.shape[1] == 1:
             return (probs >= threshold).astype(int).flatten()
@@ -219,7 +157,7 @@ class Network:
 
     def evaluate(self, X: np.ndarray, y: np.ndarray,
                  threshold: float = 0.5) -> dict:
-        """Calcula la precisión global (accuracy) y coste medio sobre un set dado."""
+
         X, y = np.array(X), np.array(y)
         y_pred = self.predict(X)
 
@@ -239,10 +177,8 @@ class Network:
         accuracy = np.mean(clases_pred == y_true_cls)
         return {'accuracy': accuracy, 'cost': loss}
 
-    # ── VISUALIZACIÓN Y DIAGNÓSTICOS ─────────────────────────────────────────
-
     def plot_cost(self, title: str = 'Curva de Costo', savepath: str = None) -> None:
-        """Grafica y guarda la curva de convergencia de coste por época."""
+
         try:
             import matplotlib.pyplot as plt
         except ImportError:
@@ -268,7 +204,7 @@ class Network:
         plt.show()
 
     def summary(self) -> None:
-        """Imprime por consola un resumen detallado de la topología de la red."""
+
         total = 0
         print("=" * 45)
         print(f"{'Capa':<20} {'Shape W':<15} {'Params':>8}")
@@ -297,10 +233,7 @@ class Network:
                       show_weights: bool = True,
                       theme: str = 'light',
                       savepath: str = 'red_neuronal.png') -> None:
-        """
-        Dibuja y guarda un diagrama esquemático de los nodos y conexiones de la red.
-        Omite las capas de Dropout para evitar graficar nodos vacíos.
-        """
+
         try:
             import matplotlib.pyplot as plt
             import matplotlib.patches as mpatches
@@ -356,7 +289,6 @@ class Network:
             ys = [((max_neurons - n) / 2 + j) * y_scale for j in range(n)]
             positions.append([(x, y) for y in ys])
 
-        # Dibujar líneas de conexión
         for i in range(n_layers - 1):
             if hasattr(visible_layers[i], 'W'):
                 layer_weights = visible_layers[i].W
@@ -380,7 +312,6 @@ class Network:
                     ax.plot([x0, x1], [y0, y1],
                             color=COLOR_EDGE, linewidth=0.4, alpha=0.4, zorder=1)
 
-        # Dibujar círculos de nodos
         for i, layer_pos in enumerate(positions):
             for j, (x, y) in enumerate(layer_pos):
                 if i == 0:
@@ -408,7 +339,6 @@ class Network:
                     ax.text(x + node_radius + 0.1, y, output_names[j],
                         ha='left', va='center', fontsize=7.5, color=COLOR_MUTED)
 
-        # Dibujar etiquetas superiores de capa
         layer_labels = ['Entrada'] + \
                        [f'Oculta {i+1}\n({visible_layers[i].activation_name})'
                         for i in range(len(visible_layers) - 1)] + \

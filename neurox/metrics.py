@@ -1,47 +1,14 @@
-"""
-neurox.metrics
---------------
-Métricas de evaluación para clasificación.
-
-Funciones disponibles:
-    - confusion_matrix(y_true, y_pred)
-    - accuracy(y_true, y_pred)
-    - precision_recall_f1(y_true, y_pred)
-    - classification_report(y_true, y_pred, class_names)
-    - plot_confusion_matrix(y_true, y_pred, class_names)
-
-Ejemplo:
-    from neurox.metrics import classification_report, plot_confusion_matrix
-
-    y_pred = model.predict_classes(X_test)
-    classification_report(y_test, y_pred, class_names=['ILESO','HERIDO','FALLECIDO'])
-    plot_confusion_matrix(y_test, y_pred, class_names=['ILESO','HERIDO','FALLECIDO'])
-"""
-
 import numpy as np
 
-
-# ─── Helpers internos ────────────────────────────────────────────────────────
-
 def _to_int(y: np.ndarray) -> np.ndarray:
-    """Convierte one-hot o float a enteros."""
+
     y = np.array(y)
     if y.ndim == 2 and y.shape[1] > 1:
         return np.argmax(y, axis=1)
     return y.flatten().astype(int)
 
-
-# ─── Matriz de confusión ─────────────────────────────────────────────────────
-
 def confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
-    """
-    Calcula la matriz de confusión.
 
-    Retorna
-    -------
-    np.ndarray, shape (n_classes, n_classes)
-    Filas = clase real, columnas = clase predicha.
-    """
     y_true = _to_int(y_true)
     y_pred = _to_int(y_pred)
     classes = np.union1d(y_true, y_pred)
@@ -51,32 +18,15 @@ def confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
         cm[t, p] += 1
     return cm
 
-
-# ─── Accuracy ────────────────────────────────────────────────────────────────
-
 def accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-    """Exactitud global: fracción de predicciones correctas."""
+
     y_true = _to_int(y_true)
     y_pred = _to_int(y_pred)
     return np.mean(y_true == y_pred)
 
-
-# ─── Precision, Recall, F1 por clase ────────────────────────────────────────
-
 def precision_recall_f1(y_true: np.ndarray,
                         y_pred: np.ndarray) -> dict:
-    """
-    Calcula precisión, recall y F1-score por clase, más promedios
-    macro y weighted.
 
-    Retorna
-    -------
-    dict con:
-        'per_class'  : dict {clase: {'precision', 'recall', 'f1', 'support'}}
-        'macro'      : {'precision', 'recall', 'f1'}
-        'weighted'   : {'precision', 'recall', 'f1'}
-        'accuracy'   : float
-    """
     y_true = _to_int(y_true)
     y_pred = _to_int(y_pred)
     classes = np.unique(y_true)
@@ -99,14 +49,12 @@ def precision_recall_f1(y_true: np.ndarray,
             'support':   int(support),
         }
 
-    # Macro (promedio simple)
     macro = {
         'precision': np.mean([v['precision'] for v in per_class.values()]),
         'recall':    np.mean([v['recall']    for v in per_class.values()]),
         'f1':        np.mean([v['f1']        for v in per_class.values()]),
     }
 
-    # Weighted (promedio ponderado por support)
     total = len(y_true)
     weighted = {
         'precision': sum(v['precision'] * v['support'] for v in per_class.values()) / total,
@@ -121,18 +69,9 @@ def precision_recall_f1(y_true: np.ndarray,
         'accuracy':  accuracy(y_true, y_pred),
     }
 
-
-# ─── Reporte de clasificación ────────────────────────────────────────────────
-
 def classification_report(y_true: np.ndarray, y_pred: np.ndarray,
                            class_names: list = None) -> None:
-    """
-    Imprime un reporte de clasificación por clase.
 
-    Parámetros
-    ----------
-    class_names : list|None — nombres de las clases (ej. ['ILESO', 'HERIDO'])
-    """
     metrics = precision_recall_f1(y_true, y_pred)
     classes = sorted(metrics['per_class'].keys())
 
@@ -161,21 +100,11 @@ def classification_report(y_true: np.ndarray, y_pred: np.ndarray,
     print("=" * len(header))
     print(f"Accuracy: {metrics['accuracy']:.4f}")
 
-
-# ─── Gráfica de matriz de confusión ──────────────────────────────────────────
-
 def plot_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray,
                           class_names: list = None,
                           title: str = 'Matriz de Confusión',
                           savepath: str = None) -> None:
-    """
-    Grafica la matriz de confusión con matplotlib.
 
-    Parámetros
-    ----------
-    class_names : list|None — nombres de las clases
-    savepath    : str|None  — si se provee, guarda la figura en esa ruta
-    """
     try:
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
@@ -189,17 +118,14 @@ def plot_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray,
     if class_names is None:
         class_names = [str(i) for i in range(n)]
 
-    # Normalizar para mostrar porcentajes dentro de cada fila
     cm_norm = cm.astype(float) / cm.sum(axis=1, keepdims=True)
 
     fig, ax = plt.subplots(figsize=(max(5, n * 1.2), max(4, n * 1.0)))
     im = ax.imshow(cm_norm, cmap='Blues', vmin=0, vmax=1)
 
-    # Colorbar
     cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
     cbar.set_label('Proporción', fontsize=9)
 
-    # Ejes
     ax.set_xticks(range(n))
     ax.set_yticks(range(n))
     ax.set_xticklabels(class_names, rotation=30, ha='right', fontsize=8)
@@ -208,7 +134,6 @@ def plot_confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray,
     ax.set_ylabel('Real', fontsize=10)
     ax.set_title(title, fontsize=11, fontweight='bold', pad=12)
 
-    # Anotaciones: count + porcentaje
     thresh = 0.5
     for i in range(n):
         for j in range(n):
