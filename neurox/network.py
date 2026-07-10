@@ -335,7 +335,9 @@ class Network:
             print("matplotlib no está instalado.")
             return
 
-        sizes = [self.layers[0].n_inputs] + [l.n_neurons for l in self.layers]
+        # Filtrar capas visibles (omitimos Dropout para evitar nodos vacíos y errores de índice)
+        visible_layers = [l for l in self.layers if l.__class__.__name__ != 'Dropout']
+        sizes = [visible_layers[0].n_inputs] + [l.n_neurons for l in visible_layers]
         n_layers = len(sizes)
         max_neurons = max(sizes)
 
@@ -388,8 +390,8 @@ class Network:
 
         # Conexiones
         for i in range(n_layers - 1):
-            if hasattr(self.layers[i], 'W'):
-                layer_weights = self.layers[i].W
+            if hasattr(visible_layers[i], 'W'):
+                layer_weights = visible_layers[i].W
                 for idx_from, (x0, y0) in enumerate(positions[i]):
                     for idx_to, (x1, y1) in enumerate(positions[i + 1]):
                         ax.plot([x0, x1], [y0, y1],
@@ -440,9 +442,9 @@ class Network:
 
         # Etiquetas de capa
         layer_labels = ['Entrada'] + \
-                       [f'Oculta {i+1}\n({self.layers[i].activation_name})'
-                        for i in range(len(self.layers) - 1)] + \
-                       [f'Salida\n({self.layers[-1].activation_name})']
+                       [f'Oculta {i+1}\n({visible_layers[i].activation_name})'
+                        for i in range(len(visible_layers) - 1)] + \
+                       [f'Salida\n({visible_layers[-1].activation_name})']
 
         for i, (layer_pos, label) in enumerate(zip(positions, layer_labels)):
             x = layer_pos[0][0]

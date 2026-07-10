@@ -332,8 +332,8 @@ def main():
         print(f"Parámetros de Entrenamiento:")
         print(f"  - Optimizador: ADAM")
         print(f"  - Épocas: 200")
-        print(f"  - Tasa de Aprendizaje (alpha): 0.01")
-        print(f"  - Tamaño de Batch (batch_size): 32")
+        print(f"  - Tasa de Aprendizaje (alpha): 0.002")
+        print(f"  - Tamaño de Batch (batch_size): 64")
         print(f"  - Weight Decay (L2): 1e-4")
         print(f"  - Clip Norm: 2.0")
         print(f"  - Semilla de pesos: {SEMILLA}")
@@ -379,13 +379,13 @@ def main():
                            savepath=PNG_MATRIZ)
 
     # ── Diagrama de la arquitectura ───────────────────────────────────────
-    # model.plot_network(
-    #     feature_names=None,   # con one-hot son demasiadas para mostrar una por una
-    #     output_names=CLASES,
-    #     title="Arquitectura — Clasificador de Gravedad",
-    #     show_weights=False,   # con 43+ entradas, mostrar cada peso satura el diagrama
-    #     savepath=PNG_RED,
-    # )
+    model.plot_network(
+        feature_names=None,   # con one-hot son demasiadas para mostrar una por una
+        output_names=CLASES,
+        title="Arquitectura — Clasificador de Gravedad",
+        show_weights=False,   # con 43+ entradas, mostrar cada peso satura el diagrama
+        savepath=PNG_RED,
+    )
 
     print(f"\nPNGs guardados en '{CARPETA_SALIDA}/':")
     print(f"  - {PNG_COSTO}")
