@@ -379,13 +379,13 @@ def main():
                            savepath=PNG_MATRIZ)
 
     # ── Diagrama de la arquitectura ───────────────────────────────────────
-    model.plot_network(
-        feature_names=None,   # con one-hot son demasiadas para mostrar una por una
-        output_names=CLASES,
-        title="Arquitectura — Clasificador de Gravedad",
-        show_weights=False,   # con 43+ entradas, mostrar cada peso satura el diagrama
-        savepath=PNG_RED,
-    )
+    # model.plot_network(
+    #     feature_names=None,   # con one-hot son demasiadas para mostrar una por una
+    #     output_names=CLASES,
+    #     title="Arquitectura — Clasificador de Gravedad",
+    #     show_weights=False,   # con 43+ entradas, mostrar cada peso satura el diagrama
+    #     savepath=PNG_RED,
+    # )
 
     print(f"\nPNGs guardados en '{CARPETA_SALIDA}/':")
     print(f"  - {PNG_COSTO}")
