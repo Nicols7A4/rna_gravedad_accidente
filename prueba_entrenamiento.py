@@ -388,13 +388,13 @@ def main():
                            savepath=PNG_MATRIZ)
 
     # Generación de la gráfica visual de arquitectura
-    model.plot_network(
-        feature_names=None,
-        output_names=CLASES,
-        title="Arquitectura — Clasificador de Gravedad",
-        show_weights=False,
-        savepath=PNG_RED,
-    )
+    # model.plot_network(
+    #     feature_names=None,
+    #     output_names=CLASES,
+    #     title="Arquitectura — Clasificador de Gravedad",
+    #     show_weights=False,
+    #     savepath=PNG_RED,
+    # )
 
     print(f"\nPNGs guardados en '{CARPETA_SALIDA}/':")
     print(f"  - {PNG_COSTO}")

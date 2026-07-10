@@ -1,8 +1,10 @@
 """
 neurox.network
---------------
-Clase Network: encadena capas Dense, entrena con backpropagation
-y evalúa el modelo.
+=============
+Clase Network: Contenedor principal de la red neuronal feedforward.
+Encadena capas secuenciales, coordina el forward pass, ejecuta el backward pass
+para retropropagar el gradiente, calcula costos y optimiza los parámetros de la red.
+
 
 Uso:
     from neurox import Network, Dense
@@ -19,6 +21,7 @@ Uso:
     model.plot_cost()
     precision = model.evaluate(X_test, y_test)
     y_pred = model.predict(X_test)
+
 """
 
 import numpy as np
@@ -27,28 +30,24 @@ from neurox.costs import get_cost, weighted_categorical_crossentropy
 
 class Network:
     """
-    Red neuronal feedforward totalmente configurable.
-
-    Parámetros
-    ----------
-    layers : list[Dense]
-        Lista de capas Dense en orden (entrada → salida).
-    cost   : str
-        Función de costo: 'mse', 'binary_crossentropy',
-        'categorical_crossentropy'.
-    class_weights : list|None
-        Peso por clase (mismo orden que las columnas del one-hot de y).
-        Un peso > 1 hace que el modelo priorice esa clase (le pesa más el
-        error), un peso < 1 la de-prioriza. Solo válido junto con
-        cost='categorical_crossentropy'.
+    Representa una Red Neuronal Artificial multicapa secuencial.
     """
 
     def __init__(self, layers: list, cost: str = 'mse', class_weights=None, gamma: float = 2.0):
+        """
+        Parámetros
+        ----------
+        layers : list — Lista secuencial de instancias de capas (Dense, Dropout).
+        cost : str — Identificador de la función de coste ('mse', 'binary_crossentropy', 'categorical_crossentropy', 'focal_loss').
+        class_weights : list|None — Vector de pesos por clase para el aprendizaje sensible al costo.
+        gamma : float — Factor de modulación para la Focal Loss (por defecto 2.0).
+        """
         self.layers = layers
         self.cost_name = cost
         self.class_weights = class_weights
         self.gamma = gamma
 
+        # ── Configuración de Función de Costo ─────────────────────────────────
         if cost == 'focal_loss':
             from neurox.costs import get_focal_loss
             n_out = layers[-1].n_neurons
@@ -61,8 +60,7 @@ class Network:
         elif class_weights is not None:
             if cost != 'categorical_crossentropy':
                 raise ValueError(
-                    "class_weights por ahora solo está soportado con "
-                    "cost='categorical_crossentropy'."
+                    "class_weights por ahora solo está soportado con cost='categorical_crossentropy'."
                 )
             n_out = layers[-1].n_neurons
             if len(class_weights) != n_out:
@@ -74,10 +72,14 @@ class Network:
         else:
             self.cost_fn, self.cost_grad = get_cost(cost)
 
-        self.history = []   # costo por época (para graficar)
+        self.history = []   # Historial de coste para graficar convergencia
+
+    # ── MÓDULO DE SERIALIZACIÓN (PICKLE COMPATIBILITY) ───────────────────────
+    # Debido a que las funciones de coste dinámicas (closures) no pueden ser
+    # serializadas directamente por pickle, implementamos bypasses en el estado.
 
     def __getstate__(self):
-        # Excluir las funciones de costo no serializables (local functions)
+        """Remueve los closures locales no serializables del estado."""
         state = self.__dict__.copy()
         if 'cost_fn' in state:
             del state['cost_fn']
@@ -86,8 +88,8 @@ class Network:
         return state
 
     def __setstate__(self, state):
+        """Restaura los closures locales de pérdida al deserializar el modelo."""
         self.__dict__.update(state)
-        # Re-inicializar funciones de costo al deserializar
         if hasattr(self, 'cost_name'):
             if self.cost_name == 'focal_loss':
                 from neurox.costs import get_focal_loss
@@ -101,20 +103,22 @@ class Network:
         else:
             self.cost_fn, self.cost_grad = None, None
 
-    # ── Forward ──────────────────────────────────────────────────────────────
+    # ── PROPAGACIÓN HACIA ADELANTE (FORWARD) ─────────────────────────────────
 
     def _forward(self, X: np.ndarray, training: bool = False) -> np.ndarray:
+        """Propaga la entrada secuencialmente a través de las capas de la red."""
         out = X
         for layer in self.layers:
             out = layer.forward(out, training=training)
         return out
 
-    # ── Backward ─────────────────────────────────────────────────────────────
+    # ── RETROPROPAGACIÓN DE GRADIENTES (BACKWARD) ─────────────────────────────
 
     def _backward(self, y_pred: np.ndarray, y_true: np.ndarray,
                   alpha: float, momentum: float = 0.0,
                   weight_decay: float = 0.0, clip_norm: float = None,
                   optimizer: str = 'sgd') -> None:
+        """Propaga el error de salida hacia atrás y actualiza los parámetros."""
         grad = self.cost_grad(y_pred, y_true)
         for layer in reversed(self.layers):
             if clip_norm is not None:
@@ -126,22 +130,15 @@ class Network:
     @staticmethod
     def _clip_grad(grad: np.ndarray, max_norm: float) -> np.ndarray:
         """
-        Recorta la señal de gradiente que fluye entre capas para que su
-        norma no supere max_norm (gradient clipping).
-
-        Nota: esto recorta el gradiente que se propaga capa a capa
-        (∂L/∂output de cada capa), no la norma global de todos los
-        parámetros a la vez como en frameworks tipo PyTorch. En una red
-        feedforward simple como esta, es la forma práctica de lograr el
-        mismo efecto estabilizador sin rehacer todo el motor de backward
-        en dos fases.
+        Recorta el gradiente local si su norma L2 supera el umbral (Gradient Clipping).
+        Estabiliza el entrenamiento y evita gradientes explosivos en mini-lotes.
         """
         norm = np.linalg.norm(grad)
         if norm > max_norm:
             grad = grad * (max_norm / (norm + 1e-12))
         return grad
 
-    # ── Entrenamiento ─────────────────────────────────────────────────────────
+    # ── ENTRENAMIENTO (TRAINING LOOP) ────────────────────────────────────────
 
     def train(self, X: np.ndarray, y: np.ndarray,
               epochs: int = 1000,
@@ -155,12 +152,12 @@ class Network:
               optimizer: str = 'sgd',
               verbose: int = 10) -> list:
         """
-        Entrena la red con gradient descent (full-batch o mini-batch/SGD/Adam).
+        Entrena la red mediante Gradiente Descendiente Estocástico (SGD) o Adam.
         """
         self.history = []
         X, y = np.array(X), np.array(y)
 
-        # Asegurar que y tenga shape (m, ?) para operaciones matriciales
+        # Forzar formato bidimensional para el vector objetivo
         if y.ndim == 1:
             y = y.reshape(-1, 1)
 
@@ -169,6 +166,7 @@ class Network:
         bs = batch_size if batch_size is not None else m
 
         for e in range(epochs):
+            # Barajado de lotes para mitigar correlaciones locales (Shuffle)
             if shuffle and batch_size is not None:
                 idx = rng.permutation(m)
                 X_epoch, y_epoch = X[idx], y[idx]
@@ -181,9 +179,12 @@ class Network:
                 X_batch = X_epoch[start:end]
                 y_batch = y_epoch[start:end]
 
+                # 1. Forward Pass
                 y_pred = self._forward(X_batch, training=True)
-                loss   = self.cost_fn(y_pred, y_batch)
+                # 2. Cost
+                loss = self.cost_fn(y_pred, y_batch)
                 epoch_loss_sum += loss * len(X_batch)
+                # 3. Backward Pass
                 self._backward(y_pred, y_batch, alpha,
                                 momentum=momentum,
                                 weight_decay=weight_decay,
@@ -199,28 +200,16 @@ class Network:
         print(f"(Época {epochs - 1:>6}) Costo: {self.history[-1]:.6f}")
         return self.history
 
-    # ── Predicción ────────────────────────────────────────────────────────────
+    # ── PREDICCIÓN E INFERENCIA ──────────────────────────────────────────────
 
     def predict(self, X: np.ndarray) -> np.ndarray:
-        """
-        Forward pass sin actualizar pesos.
-
-        Retorna
-        -------
-        np.ndarray con las probabilidades crudas de la capa de salida.
-        """
+        """Realiza el paso forward sin activar regularización (Dropout)."""
         return self._forward(np.array(X), training=False)
 
     def predict_classes(self, X: np.ndarray,
                         threshold: float = 0.5) -> np.ndarray:
         """
-        Retorna clases predichas.
-        - Binario   : 0 o 1 según threshold.
-        - Multiclase: índice de la clase con mayor probabilidad (argmax).
-
-        Parámetros
-        ----------
-        threshold : float — solo aplica para salida binaria (1 neurona).
+        Determina las etiquetas de salida en función de las probabilidades.
         """
         probs = self.predict(X)
         if probs.shape[1] == 1:
@@ -228,17 +217,9 @@ class Network:
         else:
             return np.argmax(probs, axis=1)
 
-    # ── Evaluación ────────────────────────────────────────────────────────────
-
     def evaluate(self, X: np.ndarray, y: np.ndarray,
                  threshold: float = 0.5) -> dict:
-        """
-        Calcula precisión (accuracy) y costo sobre el conjunto dado.
-
-        Retorna
-        -------
-        dict con 'accuracy' y 'cost'.
-        """
+        """Calcula la precisión global (accuracy) y coste medio sobre un set dado."""
         X, y = np.array(X), np.array(y)
         y_pred = self.predict(X)
 
@@ -248,38 +229,28 @@ class Network:
             y_mat = y
 
         loss = self.cost_fn(y_pred, y_mat)
-
         clases_pred = self.predict_classes(X, threshold)
 
-        # y_true como clases enteras para comparar
-        if y.ndim == 2 and y.shape[1] > 1:   # one-hot
+        if y.ndim == 2 and y.shape[1] > 1:
             y_true_cls = np.argmax(y, axis=1)
         else:
             y_true_cls = y.flatten().astype(int)
 
         accuracy = np.mean(clases_pred == y_true_cls)
-
         return {'accuracy': accuracy, 'cost': loss}
 
-    # ── Gráfica ───────────────────────────────────────────────────────────────
+    # ── VISUALIZACIÓN Y DIAGNÓSTICOS ─────────────────────────────────────────
 
     def plot_cost(self, title: str = 'Curva de Costo', savepath: str = None) -> None:
-        """
-        Grafica el historial de costo usando matplotlib.
-        Requiere que train() haya sido llamado antes.
-
-        Parámetros
-        ----------
-        savepath : str|None — si se provee, guarda la figura en esa ruta (PNG)
-        """
+        """Grafica y guarda la curva de convergencia de coste por época."""
         try:
             import matplotlib.pyplot as plt
         except ImportError:
-            print("matplotlib no está instalado. Instálalo con: pip install matplotlib")
+            print("matplotlib no está instalado.")
             return
 
         if not self.history:
-            print("No hay historial de entrenamiento. Llama a train() primero.")
+            print("No hay historial de costo registrado.")
             return
 
         plt.figure(figsize=(8, 4))
@@ -296,10 +267,8 @@ class Network:
 
         plt.show()
 
-    # ── Info ─────────────────────────────────────────────────────────────────
-
     def summary(self) -> None:
-        """Imprime un resumen de la arquitectura."""
+        """Imprime por consola un resumen detallado de la topología de la red."""
         total = 0
         print("=" * 45)
         print(f"{'Capa':<20} {'Shape W':<15} {'Params':>8}")
@@ -323,11 +292,15 @@ class Network:
         return f"Network(capas={len(self.layers)}, cost='{self.cost_name}')"
 
     def plot_network(self, feature_names: list = None,
-                     output_names: list = None,
-                     title: str = 'Arquitectura de la Red',
-                     show_weights: bool = True,
-                     theme: str = 'light',
-                     savepath: str = 'red_neuronal.png') -> None:
+                      output_names: list = None,
+                      title: str = 'Arquitectura de la Red',
+                      show_weights: bool = True,
+                      theme: str = 'light',
+                      savepath: str = 'red_neuronal.png') -> None:
+        """
+        Dibuja y guarda un diagrama esquemático de los nodos y conexiones de la red.
+        Omite las capas de Dropout para evitar graficar nodos vacíos.
+        """
         try:
             import matplotlib.pyplot as plt
             import matplotlib.patches as mpatches
@@ -335,16 +308,11 @@ class Network:
             print("matplotlib no está instalado.")
             return
 
-        # Filtrar capas visibles (omitimos Dropout para evitar nodos vacíos y errores de índice)
         visible_layers = [l for l in self.layers if l.__class__.__name__ != 'Dropout']
         sizes = [visible_layers[0].n_inputs] + [l.n_neurons for l in visible_layers]
         n_layers = len(sizes)
         max_neurons = max(sizes)
 
-        # Si alguna capa tiene muchas neuronas (típico tras one-hot con
-        # muchas entradas), comprimimos el espaciado vertical entre nodos
-        # y desactivamos las etiquetas de peso para que el PNG no termine
-        # siendo gigantesco o ilegible.
         y_scale = 1.0
         if max_neurons > 30:
             y_scale = 30 / max_neurons
@@ -388,7 +356,7 @@ class Network:
             ys = [((max_neurons - n) / 2 + j) * y_scale for j in range(n)]
             positions.append([(x, y) for y in ys])
 
-        # Conexiones
+        # Dibujar líneas de conexión
         for i in range(n_layers - 1):
             if hasattr(visible_layers[i], 'W'):
                 layer_weights = visible_layers[i].W
@@ -412,7 +380,7 @@ class Network:
                     ax.plot([x0, x1], [y0, y1],
                             color=COLOR_EDGE, linewidth=0.4, alpha=0.4, zorder=1)
 
-        # Nodos
+        # Dibujar círculos de nodos
         for i, layer_pos in enumerate(positions):
             for j, (x, y) in enumerate(layer_pos):
                 if i == 0:
@@ -440,7 +408,7 @@ class Network:
                     ax.text(x + node_radius + 0.1, y, output_names[j],
                         ha='left', va='center', fontsize=7.5, color=COLOR_MUTED)
 
-        # Etiquetas de capa
+        # Dibujar etiquetas superiores de capa
         layer_labels = ['Entrada'] + \
                        [f'Oculta {i+1}\n({visible_layers[i].activation_name})'
                         for i in range(len(visible_layers) - 1)] + \
@@ -448,32 +416,15 @@ class Network:
 
         for i, (layer_pos, label) in enumerate(zip(positions, layer_labels)):
             x = layer_pos[0][0]
-            y_top = max(p[1] for p in layer_pos) + node_radius + 0.35
-            ax.text(x, y_top, label, ha='center', va='bottom',
-                    fontsize=8, color=COLOR_TEXT, fontweight='bold')
-            ax.text(x, min(p[1] for p in layer_pos) - node_radius - 0.35,
-                    f'n={sizes[i]}', ha='center', va='top',
-                    fontsize=7, color=COLOR_MUTED)
+            y_max = max(pos[1] for pos in layer_pos)
+            ax.text(x, y_max + 1.2, label, ha='center', va='bottom',
+                    fontsize=8.5, color=COLOR_TEXT, fontweight='bold')
 
-        # Leyenda
-        legend = [
-            mpatches.Patch(color=COLOR_INPUT,  label='Entrada'),
-            mpatches.Patch(color=COLOR_HIDDEN, label='Oculta'),
-            mpatches.Patch(color=COLOR_OUTPUT, label='Salida'),
-        ]
-        ax.legend(handles=legend, loc='lower right',
-                  facecolor=LEGEND_BG, edgecolor=BOX_EDGE,
-                  labelcolor=COLOR_TEXT, fontsize=8)
-
-        all_x = [p[0] for lp in positions for p in lp]
-        all_y = [p[1] for lp in positions for p in lp]
-        ax.set_xlim(min(all_x) - 1.5, max(all_x) + 1.5)
-        ax.set_ylim(min(all_y) - 1.2, max(all_y) + 1.2)
-
-        ax.set_title(title, color=COLOR_TEXT, fontsize=11,
-                     fontweight='bold', pad=12)
+        plt.title(title, fontsize=12, fontweight='bold', color=COLOR_TEXT, pad=20)
         plt.tight_layout()
-        plt.savefig(savepath, dpi=150,
-                    bbox_inches='tight', facecolor=COLOR_BG)
-        plt.show()
-        print(f"Diagrama guardado como '{savepath}'")
+
+        if savepath:
+            plt.savefig(savepath, dpi=200, bbox_inches='tight')
+            print(f"Diagrama de la red guardado en '{savepath}'")
+
+        plt.close()
