@@ -75,36 +75,13 @@ class Dense:
     # ── Backward ─────────────────────────────────────────────────────────────
 
     def backward(self, grad_output: np.ndarray, alpha: float,
-                 momentum: float = 0.0, weight_decay: float = 0.0) -> np.ndarray:
+                 momentum: float = 0.0, weight_decay: float = 0.0,
+                 optimizer: str = 'sgd') -> np.ndarray:
         """
         Pasada hacia atrás: calcula gradientes, actualiza pesos y retorna
         el gradiente respecto a la entrada (para propagarlo a la capa anterior).
-
-        Parámetros
-        ----------
-        grad_output : np.ndarray, shape (m, n_neurons)
-            Gradiente que llega desde la capa siguiente (∂L/∂output).
-        alpha : float
-            Tasa de aprendizaje.
-        momentum : float
-            Coeficiente de momentum clásico (0 = SGD puro, sin momentum).
-            v = momentum * v - alpha * grad ; W += v
-        weight_decay : float
-            Coeficiente de regularización L2 (solo se aplica a W, no a b).
-            grad_W += weight_decay * W antes de la actualización.
-            OJO: valores típicos son 1e-4 a 1e-2. Un valor como 0.9
-            no es "weight decay" en el sentido usual (destruiría los pesos
-            en cada paso); si se necesita ese comportamiento hay que
-            pedirlo explícitamente.
-
-        Retorna
-        -------
-        np.ndarray, shape (m, n_inputs)
-            Gradiente respecto a la entrada de esta capa (∂L/∂X).
         """
         # Gradiente respecto a z (pre-activación)
-        # Excepción: softmax+CCE ya viene simplificado desde el costo,
-        # así que su fn_prime devuelve unos y no modifica grad_output.
         delta = grad_output * self.fn_prime(self._z)   # (m, n_neurons)
 
         # Gradientes de pesos y bias
@@ -115,12 +92,37 @@ class Dense:
         if weight_decay:
             grad_W = grad_W + weight_decay * self.W
 
-        # Gradiente hacia la capa anterior (se calcula ANTES de actualizar W,
-        # usando los pesos "viejos", como corresponde en backprop)
+        # Gradiente hacia la capa anterior (se calcula ANTES de actualizar W)
         grad_input = delta @ self.W.T                  # (m, n_inputs)
 
         # Actualización de pesos
-        if momentum:
+        if optimizer == 'adam':
+            # Inicializar acumuladores de Adam de forma perezosa
+            if not hasattr(self, '_mW'):
+                self._mW = np.zeros_like(self.W)
+                self._vW_adam = np.zeros_like(self.W)
+                self._mb = np.zeros_like(self.b)
+                self._vb_adam = np.zeros_like(self.b)
+                self._t = 0
+            
+            self._t += 1
+            beta1, beta2, eps = 0.9, 0.999, 1e-8
+            
+            # Adam para W
+            self._mW = beta1 * self._mW + (1 - beta1) * grad_W
+            self._vW_adam = beta2 * self._vW_adam + (1 - beta2) * (grad_W ** 2)
+            m_hat_W = self._mW / (1 - beta1 ** self._t)
+            v_hat_W = self._vW_adam / (1 - beta2 ** self._t)
+            self.W -= alpha * m_hat_W / (np.sqrt(v_hat_W) + eps)
+            
+            # Adam para b
+            self._mb = beta1 * self._mb + (1 - beta1) * grad_b
+            self._vb_adam = beta2 * self._vb_adam + (1 - beta2) * (grad_b ** 2)
+            m_hat_b = self._mb / (1 - beta1 ** self._t)
+            v_hat_b = self._vb_adam / (1 - beta2 ** self._t)
+            self.b -= alpha * m_hat_b / (np.sqrt(v_hat_b) + eps)
+            
+        elif momentum:
             self._vW = momentum * self._vW - alpha * grad_W
             self._vb = momentum * self._vb - alpha * grad_b
             self.W += self._vW

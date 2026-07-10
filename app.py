@@ -130,10 +130,11 @@ def cargar_modelo():
             epochs=200,
             alpha=0.01,
             batch_size=32,
-            momentum=0.80,
+            momentum=0.80, # Ignorado por Adam
             weight_decay=1e-4,
             clip_norm=2.0,
             seed=SEMILLA,
+            optimizer='adam',
             verbose=10,
         )
         

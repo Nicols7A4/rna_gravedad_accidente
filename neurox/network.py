@@ -113,13 +113,15 @@ class Network:
 
     def _backward(self, y_pred: np.ndarray, y_true: np.ndarray,
                   alpha: float, momentum: float = 0.0,
-                  weight_decay: float = 0.0, clip_norm: float = None) -> None:
+                  weight_decay: float = 0.0, clip_norm: float = None,
+                  optimizer: str = 'sgd') -> None:
         grad = self.cost_grad(y_pred, y_true)
         for layer in reversed(self.layers):
             if clip_norm is not None:
                 grad = self._clip_grad(grad, clip_norm)
             grad = layer.backward(grad, alpha, momentum=momentum,
-                                   weight_decay=weight_decay)
+                                   weight_decay=weight_decay,
+                                   optimizer=optimizer)
 
     @staticmethod
     def _clip_grad(grad: np.ndarray, max_norm: float) -> np.ndarray:
@@ -150,30 +152,10 @@ class Network:
               clip_norm: float = None,
               shuffle: bool = True,
               seed: int = None,
+              optimizer: str = 'sgd',
               verbose: int = 10) -> list:
         """
-        Entrena la red con gradient descent (full-batch o mini-batch/SGD).
-
-        Parámetros
-        ----------
-        X            : np.ndarray, shape (m, n_features)
-        y            : np.ndarray, shape (m,) o (m, n_clases)
-        epochs       : int   — número de épocas
-        alpha        : float — tasa de aprendizaje
-        batch_size   : int|None — tamaño de mini-batch. None = full-batch
-                       (todo el dataset en cada paso, comportamiento original).
-        momentum     : float — coeficiente de momentum clásico (0 = SGD puro)
-        weight_decay : float — coeficiente L2 (ver advertencia en Dense.backward
-                       sobre valores grandes como 0.9)
-        clip_norm    : float|None — umbral de gradient clipping (None = sin clip)
-        shuffle      : bool — baraja los datos en cada época (solo relevante
-                       si batch_size no es None)
-        seed         : int|None — semilla para el barajado
-        verbose      : int   — imprime el costo cada N épocas (0 = silencioso)
-
-        Retorna
-        -------
-        list — historial de costo por época (promedio ponderado si hay batches)
+        Entrena la red con gradient descent (full-batch o mini-batch/SGD/Adam).
         """
         self.history = []
         X, y = np.array(X), np.array(y)
@@ -205,7 +187,8 @@ class Network:
                 self._backward(y_pred, y_batch, alpha,
                                 momentum=momentum,
                                 weight_decay=weight_decay,
-                                clip_norm=clip_norm)
+                                clip_norm=clip_norm,
+                                optimizer=optimizer)
 
             epoch_loss = epoch_loss_sum / m
             self.history.append(epoch_loss)

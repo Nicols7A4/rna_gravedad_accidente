@@ -50,7 +50,7 @@ PNG_RED = f"{CARPETA_SALIDA}/arquitectura_red.png"
 # a las clases que confunde entre sí (LESIONADO <-> FALLECIDO).
 # Ajusta estos 3 números y vuelve a correr para ver el efecto.
 # CLASS_WEIGHTS = None  # ej.: [1.0, 1.4, 1.4]  (orden: ILESO, LESIONADO, FALLECIDO)
-CLASS_WEIGHTS = [1.0, 1.0, 2]
+CLASS_WEIGHTS = [1.0, 1.1, 2]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -299,42 +299,80 @@ def main():
     model.summary()
 
     # ── Hiperparámetros (los que la librería soporta de tu tabla) ─────────
-    model.train(
+    print("\n[ENTRENAMIENTO] Iniciando entrenamiento con optimizador ADAM...")
+    historial_costo = model.train(
         X_train, y_train,
         epochs=200,
-        alpha=0.01,
-        batch_size=32,
-        momentum=0.80,
-        weight_decay=1e-4,   # NOTA: usamos 1e-4, no 0.9 (ver advertencia arriba)
+        alpha=0.001,
+        batch_size=64,
+        momentum=0.80,  # Ignorado por Adam
+        weight_decay=1e-4,
         clip_norm=2.0,
         seed=SEMILLA,
+        optimizer='adam',
         verbose=10,
     )
 
-    model.plot_cost(title="Costo — Método A (undersampling)", savepath=PNG_COSTO)
+    model.plot_cost(title="Costo — Método A (Focal Loss)", savepath=PNG_COSTO)
 
-    # ── Diagnóstico: train vs test ────────────────────────────────────────
-    # Si train también está bajo -> underfitting (falta capacidad/features).
-    # Si train >> test -> overfitting (falta regularización/datos).
-    res_train = model.evaluate(X_train, y_train)
-    res_test = model.evaluate(X_test, y_test)
-    print(f"\nAccuracy train: {res_train['accuracy']:.4f}  "
-          f"(costo: {res_train['cost']:.4f})")
-    print(f"Accuracy test:  {res_test['accuracy']:.4f}  "
-          f"(costo: {res_test['cost']:.4f})")
-    brecha = res_train['accuracy'] - res_test['accuracy']
-    if brecha > 0.10:
-        print(f"-> Brecha de {brecha:.1%}: pinta a OVERFITTING "
-              f"(sube weight_decay o baja capacidad de la red).")
-    elif res_train['accuracy'] < 0.80:
-        print(f"-> Train también bajo: pinta a UNDERFITTING "
-              f"(falta capacidad, features, o el límite lo pone la calidad del dato).")
+    # ── Diagnóstico y Captura de Logs ──────────────────────────────────────
+    import io
+    import datetime
+    from contextlib import redirect_stdout
 
-    # ── Evaluación ──────────────────────────────────────────────────────────
-    y_pred_cls = model.predict_classes(X_test)
-    y_true_cls = np.argmax(y_test, axis=1)
+    f = io.StringIO()
+    with redirect_stdout(f):
+        print("=" * 70)
+        print("REGISTRO DE ENTRENAMIENTO - PREDICTOR DE SINIESTROS VIALES")
+        print(f"Fecha de Ejecución: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("=" * 70)
+        print(f"Dataset de Entrada: {df.shape[0]} registros totales")
+        print(f"Clase de Costo Utilizada: {model.cost_name}")
+        print(f"Parámetros de Entrenamiento:")
+        print(f"  - Optimizador: ADAM")
+        print(f"  - Épocas: 200")
+        print(f"  - Tasa de Aprendizaje (alpha): 0.01")
+        print(f"  - Tamaño de Batch (batch_size): 32")
+        print(f"  - Weight Decay (L2): 1e-4")
+        print(f"  - Clip Norm: 2.0")
+        print(f"  - Semilla de pesos: {SEMILLA}")
+        print("\nArquitectura de la Red Neuronal:")
+        model.summary()
+        
+        print("\nHistorial del Costo por Época:")
+        for idx, costo in enumerate(historial_costo):
+            if idx % 10 == 0 or idx == len(historial_costo) - 1:
+                print(f"  Época {idx:>3}: Costo = {costo:.6f}")
+                
+        print("\nEvaluación en Conjunto de Validación (20% Test):")
+        res_train = model.evaluate(X_train, y_train)
+        res_test = model.evaluate(X_test, y_test)
+        print(f"Accuracy train: {res_train['accuracy']:.4f}  (costo: {res_train['cost']:.4f})")
+        print(f"Accuracy test:  {res_test['accuracy']:.4f}  (costo: {res_test['cost']:.4f})")
+        brecha = res_train['accuracy'] - res_test['accuracy']
+        if brecha > 0.10:
+            print(f"-> Diagnóstico: Brecha de {brecha:.1%} indica OVERFITTING")
+        elif res_train['accuracy'] < 0.80:
+            print(f"-> Diagnóstico: Train bajo indica UNDERFITTING")
+        else:
+            print(f"-> Diagnóstico: Modelo estable y con buena generalización")
+            
+        print("\nReporte de Clasificación Final por Clase:")
+        y_pred_cls = model.predict_classes(X_test)
+        y_true_cls = np.argmax(y_test, axis=1)
+        classification_report(y_true_cls, y_pred_cls, class_names=CLASES)
+        print("=" * 70)
 
-    classification_report(y_true_cls, y_pred_cls, class_names=CLASES)
+    report_str = f.getvalue()
+    # Mostrar el reporte en la consola de ejecución normal
+    print(report_str)
+
+    # Guardar el registro de entrenamiento en outputs/log_entrenamiento.txt
+    path_log = os.path.join(CARPETA_SALIDA, "log_entrenamiento.txt")
+    with open(path_log, "w", encoding="utf-8") as f_log:
+        f_log.write(report_str)
+    print(f"\n[REGISTRO] Log del entrenamiento guardado en: {path_log}")
+
     plot_confusion_matrix(y_true_cls, y_pred_cls, class_names=CLASES,
                            title="Matriz de Confusión — Método A",
                            savepath=PNG_MATRIZ)

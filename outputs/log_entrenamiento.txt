@@ -1,0 +1,72 @@
+======================================================================
+REGISTRO DE ENTRENAMIENTO - PREDICTOR DE SINIESTROS VIALES
+Fecha de Ejecución: 2026-07-09 19:50:57
+======================================================================
+Dataset de Entrada: 23973 registros totales
+Clase de Costo Utilizada: focal_loss
+Parámetros de Entrenamiento:
+  - Optimizador: ADAM
+  - Épocas: 200
+  - Tasa de Aprendizaje (alpha): 0.01
+  - Tamaño de Batch (batch_size): 32
+  - Weight Decay (L2): 1e-4
+  - Clip Norm: 2.0
+  - Semilla de pesos: 42
+
+Arquitectura de la Red Neuronal:
+=============================================
+Capa                 Shape W           Params
+=============================================
+Dense_1              [relu    ] (212, 128)         27264
+Dropout_2            [dropout ] N/A                    0
+Dense_3              [relu    ] (128, 64)           8256
+Dropout_4            [dropout ] N/A                    0
+Dense_5              [relu    ] (64, 32)            2080
+Dropout_6            [dropout ] N/A                    0
+Dense_7              [softmax ] (32, 3)               99
+=============================================
+Total parámetros                       37699
+Costo: focal_loss
+=============================================
+
+Historial del Costo por Época:
+  Época   0: Costo = 0.412959
+  Época  10: Costo = 0.182617
+  Época  20: Costo = 0.153336
+  Época  30: Costo = 0.134648
+  Época  40: Costo = 0.120778
+  Época  50: Costo = 0.114649
+  Época  60: Costo = 0.106430
+  Época  70: Costo = 0.106651
+  Época  80: Costo = 0.099754
+  Época  90: Costo = 0.096686
+  Época 100: Costo = 0.094977
+  Época 110: Costo = 0.091836
+  Época 120: Costo = 0.090293
+  Época 130: Costo = 0.088502
+  Época 140: Costo = 0.088051
+  Época 150: Costo = 0.083242
+  Época 160: Costo = 0.086927
+  Época 170: Costo = 0.081358
+  Época 180: Costo = 0.084705
+  Época 190: Costo = 0.081363
+  Época 199: Costo = 0.082434
+
+Evaluación en Conjunto de Validación (20% Test):
+Accuracy train: 0.8668  (costo: 0.0584)
+Accuracy test:  0.7287  (costo: 0.4032)
+-> Diagnóstico: Brecha de 13.8% indica OVERFITTING
+
+Reporte de Clasificación Final por Clase:
+=======================================================
+Clase        Precision     Recall         F1    Support
+-------------------------------------------------------
+ILESO           0.7863     0.8180     0.8018       1066
+LESIONADO       0.6336     0.7928     0.7043       1573
+FALLECIDO       0.8003     0.6378     0.7099       2156
+-------------------------------------------------------
+macro avg       0.7401     0.7495     0.7387       4795
+weighted avg     0.7425     0.7287     0.7285       4795
+=======================================================
+Accuracy: 0.7287
+======================================================================
