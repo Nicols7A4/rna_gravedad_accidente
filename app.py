@@ -42,6 +42,24 @@ def cargar_modelo():
         if modelo_datos['model'] is not None:
             return modelo_datos
         
+        # 1. Intentar cargar respaldo pre-entrenado
+        import os
+        import pickle
+        path_respaldo = os.path.join("outputs", "modelo_guardado.pkl")
+        if os.path.exists(path_respaldo):
+            print(f"[RESPALDO] Cargando modelo guardado de: {path_respaldo}...")
+            with open(path_respaldo, "rb") as f:
+                respaldo = pickle.load(f)
+            modelo_datos['model'] = respaldo['model']
+            modelo_datos['norm'] = respaldo['norm']
+            modelo_datos['le'] = respaldo['le']
+            modelo_datos['columnas'] = respaldo['columnas']
+            modelo_datos['accuracy'] = respaldo['accuracy']
+            modelo_datos['preprocesador'] = respaldo['preprocesador']
+            print("[RESPALDO] ¡Modelo cargado exitosamente en menos de 1 segundo!")
+            return modelo_datos
+        
+        print("[RESPALDO] No se encontró modelo guardado. Entrenando uno nuevo...")
         # Configuración de balanceo y pérdida (Propuesta B)
         balancear = False
         usar_focal_loss = True
@@ -49,8 +67,8 @@ def cargar_modelo():
         # Cargar y balancear datos
         df = cargar_y_balancear(RUTA_CSV, seed=SEMILLA, balancear=balancear)
         
-        # Separar datos para evitar data leakage
-        df_train = df.sample(frac=0.8, random_state=SEMILLA)
+        # Separar datos para evitar data leakage (aleatorio sin semilla fija)
+        df_train = df.sample(frac=0.8, random_state=None)
         df_test = df.drop(df_train.index).reset_index(drop=True)
         df_train = df_train.reset_index(drop=True)
         
@@ -131,6 +149,15 @@ def cargar_modelo():
         modelo_datos['accuracy'] = accuracy
         modelo_datos['preprocesador'] = preprocesador
         
+        # Guardar respaldo para evitar re-entrenamiento posterior
+        try:
+            os.makedirs("outputs", exist_ok=True)
+            with open(path_respaldo, "wb") as f:
+                pickle.dump(modelo_datos, f)
+            print(f"[RESPALDO] Nuevo modelo guardado con éxito en: {path_respaldo}")
+        except Exception as e:
+            print(f"[RESPALDO] No se pudo guardar el modelo: {e}")
+            
         return modelo_datos
     
     except FileNotFoundError:

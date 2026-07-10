@@ -76,6 +76,31 @@ class Network:
 
         self.history = []   # costo por época (para graficar)
 
+    def __getstate__(self):
+        # Excluir las funciones de costo no serializables (local functions)
+        state = self.__dict__.copy()
+        if 'cost_fn' in state:
+            del state['cost_fn']
+        if 'cost_grad' in state:
+            del state['cost_grad']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        # Re-inicializar funciones de costo al deserializar
+        if hasattr(self, 'cost_name'):
+            if self.cost_name == 'focal_loss':
+                from neurox.costs import get_focal_loss
+                self.cost_fn, self.cost_grad = get_focal_loss(gamma=getattr(self, 'gamma', 2.0), alpha_vector=getattr(self, 'class_weights', None))
+            elif getattr(self, 'class_weights', None) is not None:
+                from neurox.costs import weighted_categorical_crossentropy
+                self.cost_fn, self.cost_grad = weighted_categorical_crossentropy(self.class_weights)
+            else:
+                from neurox.costs import get_cost
+                self.cost_fn, self.cost_grad = get_cost(self.cost_name)
+        else:
+            self.cost_fn, self.cost_grad = None, None
+
     # ── Forward ──────────────────────────────────────────────────────────────
 
     def _forward(self, X: np.ndarray, training: bool = False) -> np.ndarray:

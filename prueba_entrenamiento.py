@@ -236,8 +236,8 @@ def main():
 
     df = cargar_y_balancear(RUTA_CSV, seed=SEMILLA, balancear=balancear)
 
-    # Separación df_train / df_test para evitar data leakage
-    df_train = df.sample(frac=0.8, random_state=SEMILLA)
+    # Separación df_train / df_test para evitar data leakage (aleatoria sin semilla fija)
+    df_train = df.sample(frac=0.8, random_state=None)
     df_test = df.drop(df_train.index).reset_index(drop=True)
     df_train = df_train.reset_index(drop=True)
 
@@ -352,6 +352,21 @@ def main():
     print(f"  - {PNG_COSTO}")
     print(f"  - {PNG_MATRIZ}")
     print(f"  - {PNG_RED}")
+
+    # ── Guardar Respaldo del Modelo ─────────────────────────────────────────
+    import pickle
+    path_respaldo = os.path.join(CARPETA_SALIDA, "modelo_guardado.pkl")
+    respaldo = {
+        "model": model,
+        "norm": norm,
+        "le": le,
+        "columnas": columnas,
+        "accuracy": res_test['accuracy'],
+        "preprocesador": preprocesador
+    }
+    with open(path_respaldo, "wb") as f:
+        pickle.dump(respaldo, f)
+    print(f"\n[RESPALDO] Modelo guardado con éxito en: {path_respaldo}")
 
     return model, norm, le, columnas, preprocesador
 
