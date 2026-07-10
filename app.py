@@ -8,7 +8,7 @@ Uso:
     Luego abre: http://localhost:5000
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import numpy as np
 import pandas as pd
 import json
@@ -16,7 +16,7 @@ from neurox import Network, Dense, Dropout, Normalizer, LabelEncoder, train_test
 from prueba_entrenamiento import (
     CLASES, FEATURES_NUMERICAS, FEATURES_CATEGORICAS,
     cargar_y_balancear, RUTA_CSV, SEMILLA,
-    COLUMNAS_ALTA_CARDINALIDAD, MIN_FRECUENCIA,
+    COLUMNAS_ALTA_CARDINALIDAD, MIN_FRECUENCIA, CLASS_WEIGHTS,
     SiniestrosPreprocessor, codificar_target
 )
 
@@ -94,7 +94,9 @@ def cargar_modelo():
             class_counts[class_counts == 0] = 1
             adaptive_alpha = total_samples / (k_classes * class_counts)
             print(f"Pesos adaptativos de clase calculados: {adaptive_alpha}")
+            print(f"Pesos ajustados de clase calculados: {CLASS_WEIGHTS}")
             class_weights = adaptive_alpha
+            class_weights = CLASS_WEIGHTS
             cost_function = "focal_loss"
         else:
             class_weights = None
@@ -127,8 +129,8 @@ def cargar_modelo():
         # Entrenar
         model.train(
             X_train, y_train,
-            epochs=200,
-            alpha=0.01,
+            epochs=100,
+            alpha=0.001,
             batch_size=32,
             momentum=0.80, # Ignorado por Adam
             weight_decay=1e-4,
@@ -170,8 +172,8 @@ def cargar_modelo():
 
 @app.route('/')
 def index():
-    """Página principal"""
-    return render_template('index.html', clases=CLASES)
+    """Página principal - Redirige al simulador por defecto"""
+    return redirect(url_for('simulator'))
 
 @app.route('/api/info')
 def api_info():
@@ -281,8 +283,13 @@ def api_predict_batch():
 
 @app.route('/simulator')
 def simulator():
-    """Página del simulador interactivo de riesgo vial"""
+    """Página del simulador interactivo de riesgo vial (Básico)"""
     return render_template('simulator.html', clases=CLASES)
+
+@app.route('/simulator-complete')
+def simulator_complete():
+    """Página del simulador interactivo de riesgo vial (Completo)"""
+    return render_template('simulator_complete.html', clases=CLASES)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

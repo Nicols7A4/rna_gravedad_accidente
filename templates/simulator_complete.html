@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎮 Simulador de Riesgo de Siniestros</title>
+    <title>🎮 Simulador Completo de Riesgo</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         .simulator-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1.3fr 0.7fr;
             gap: 30px;
             margin-top: 20px;
         }
-        @media (max-width: 900px) {
+        @media (max-width: 1100px) {
             .simulator-grid {
                 grid-template-columns: 1fr;
             }
@@ -112,6 +112,23 @@
             background: #ef4444;
             border-radius: 50%;
         }
+        
+        /* Layout de 3 columnas para el simulador completo */
+        .form-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+        @media (max-width: 768px) {
+            .form-grid-3 {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (max-width: 480px) {
+            .form-grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -126,11 +143,11 @@
                 </div>
             </div>
             <nav class="nav">
-                <a href="/simulator" class="nav-btn active" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                <a href="/simulator" class="nav-btn" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
                     <span class="icon">🎮</span>
                     Simulador Básico
                 </a>
-                <a href="/simulator-complete" class="nav-btn" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
+                <a href="/simulator-complete" class="nav-btn active" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
                     <span class="icon">⚙️</span>
                     Simulador Completo
                 </a>
@@ -141,18 +158,18 @@
     <main class="main">
         <div class="container">
             <div class="tab-header">
-                <h2>🎮 Simulador de Riesgo en Tiempo Real</h2>
-                <p>Mueve los controles para ver de manera interactiva cómo varían las probabilidades de gravedad del siniestro</p>
+                <h2>⚙️ Simulador de Riesgo Completo</h2>
+                <p>Modifica de forma detallada todos los parámetros de entrada del modelo para simular escenarios de siniestros complejos</p>
             </div>
 
             <div class="simulator-grid">
-                <!-- PANEL IZQUIERDO: CONTROLES -->
+                <!-- PANEL IZQUIERDO: CONTROLES COMPLETOS -->
                 <div class="sim-control-panel">
                     <form id="sim-form">
                         <!-- EDAD SLIDER -->
                         <div class="slider-group">
                             <div class="slider-header">
-                                <label for="edad">Edad del Conductor</label>
+                                <label for="edad">Edad del Evaluado</label>
                                 <span class="slider-val" id="edad-val">35 años</span>
                             </div>
                             <input type="range" id="edad" name="EDAD" min="15" max="90" value="35" class="sim-slider">
@@ -169,31 +186,36 @@
 
                         <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;">
 
-                        <!-- SELECTORES -->
-                        <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <!-- SELECTORES EN 3 COLUMNAS -->
+                        <div class="form-grid-3">
+                            <!-- 1. RESULTADO DOSAJE -->
                             <div class="form-group">
-                                <label for="drunk" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">¿Consumió Alcohol?</label>
-                                <select id="drunk" class="sim-select" name="RESULTADO DEL DOSAJE ETÍLICO CUALITATIVO">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">¿Consumió Alcohol?</label>
+                                <select class="sim-select" name="RESULTADO DEL DOSAJE ETÍLICO CUALITATIVO">
                                     <option value="NEGATIVO">No (Negativo)</option>
                                     <option value="POSITIVO">Sí (Positivo)</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
                                 </select>
                             </div>
 
+                            <!-- 2. VEHICULO -->
                             <div class="form-group">
-                                <label for="vehiculo" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Tipo de Vehículo</label>
-                                <select id="vehiculo" class="sim-select" name="VEHÍCULO">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Tipo de Vehículo</label>
+                                <select class="sim-select" name="VEHÍCULO">
                                     <option value="AUTO">Automóvil</option>
                                     <option value="MOTO">Motocicleta</option>
                                     <option value="BICICLETA">Bicicleta</option>
                                     <option value="CAMIONETA RURAL">Camioneta Rural</option>
                                     <option value="CAMIÓN">Camión de Carga</option>
                                     <option value="BUS">Bus interprovincial</option>
+                                    <option value="DESCONOCIDO">Otro / Desconocido</option>
                                 </select>
                             </div>
 
+                            <!-- 3. CAUSA -->
                             <div class="form-group">
-                                <label for="causa" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Causa del Siniestro</label>
-                                <select id="causa" class="sim-select" name="CAUSA">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Causa del Siniestro</label>
+                                <select class="sim-select" name="CAUSA">
                                     <option value="IMPRUDENCIA DEL CONDUCTOR">Imprudencia del Conductor</option>
                                     <option value="EXCESO DE VELOCIDAD">Exceso de Velocidad</option>
                                     <option value="EMBRIAGUEZ">Embriaguez</option>
@@ -203,9 +225,10 @@
                                 </select>
                             </div>
 
+                            <!-- 4. CLASE DE SINIESTRO -->
                             <div class="form-group">
-                                <label for="siniestro" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Clase de Siniestro</label>
-                                <select id="siniestro" class="sim-select" name="CLASE DE SINIESTRO">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Clase de Siniestro</label>
+                                <select class="sim-select" name="CLASE DE SINIESTRO">
                                     <option value="CHOQUE">Choque / Impacto</option>
                                     <option value="COLISIÓN">Colisión Múltiple</option>
                                     <option value="VOLCADURA">Volcadura</option>
@@ -214,9 +237,10 @@
                                 </select>
                             </div>
 
+                            <!-- 5. TIPO DE VIA -->
                             <div class="form-group">
-                                <label for="via" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Tipo de Vía</label>
-                                <select id="via" class="sim-select" name="TIPO DE VÍA">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Tipo de Vía</label>
+                                <select class="sim-select" name="TIPO DE VÍA">
                                     <option value="AVENIDA">Avenida Metropolitana</option>
                                     <option value="CALLE">Calle / Jirón</option>
                                     <option value="CARRETERA PROVINCIAL">Carretera Provincial</option>
@@ -224,17 +248,20 @@
                                 </select>
                             </div>
 
+                            <!-- 6. POSEE LICENCIA -->
                             <div class="form-group">
-                                <label for="licencia" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Posee Licencia</label>
-                                <select id="licencia" class="sim-select" name="POSEE LICENCIA">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">¿Posee Licencia?</label>
+                                <select class="sim-select" name="POSEE LICENCIA">
                                     <option value="SI">Sí (Posee)</option>
                                     <option value="NO">No (Sin licencia)</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
                                 </select>
                             </div>
 
+                            <!-- 7. TIPO PERSONA -->
                             <div class="form-group">
-                                <label for="tipo_persona" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Tipo de Persona Evaluada</label>
-                                <select id="tipo_persona" class="sim-select" name="TIPO PERSONA">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Tipo de Persona</label>
+                                <select class="sim-select" name="TIPO PERSONA">
                                     <option value="CONDUCTOR">Conductor</option>
                                     <option value="PASAJERO">Pasajero</option>
                                     <option value="PEATÓN">Peatón</option>
@@ -243,9 +270,10 @@
                                 </select>
                             </div>
 
+                            <!-- 8. DEPARTAMENTO -->
                             <div class="form-group">
-                                <label for="departamento" style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Departamento</label>
-                                <select id="departamento" class="sim-select" name="DEPARTAMENTO">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Departamento</label>
+                                <select class="sim-select" name="DEPARTAMENTO">
                                     <option value="LIMA">Lima</option>
                                     <option value="LA LIBERTAD">La Libertad</option>
                                     <option value="CUSCO">Cusco</option>
@@ -257,34 +285,127 @@
                                     <option value="JUNIN">Junín</option>
                                     <option value="ANCASH">Ancash</option>
                                     <option value="LAMBAYEQUE">Lambayeque</option>
-                                    <option value="AYACUCHO">Ayacucho</option>
-                                    <option value="HUANCAVELICA">Huancavelica</option>
+                                    <option value="CALLAO">Callao</option>
+                                    <option value="AMAZONAS">Amazonas</option>
                                     <option value="SAN MARTIN">San Martín</option>
                                     <option value="TACNA">Tacna</option>
                                     <option value="APURIMAC">Apurímac</option>
                                     <option value="HUANUCO">Huánuco</option>
                                     <option value="TUMBES">Tumbes</option>
-                                    <option value="CALLAO">Callao</option>
-                                    <option value="AMAZONAS">Amazonas</option>
                                     <option value="PASCO">Pasco</option>
                                     <option value="LORETO">Loreto</option>
-                                    <option value="MADRE DE DIOS">Madre de Dios</option>
-                                    <option value="MOQUEGUA">Moquegua</option>
                                     <option value="UCAYALI">Ucayali</option>
+                                </select>
+                            </div>
+
+                            <!-- 9. SEXO -->
+                            <div class="form-group">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Sexo del Evaluado</label>
+                                <select class="sim-select" name="SEXO">
+                                    <option value="MASCULINO">Masculino</option>
+                                    <option value="FEMENINO">Femenino</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <!-- 10. ESTADO LICENCIA -->
+                            <div class="form-group">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Estado de Licencia</label>
+                                <select class="sim-select" name="ESTADO LICENCIA">
+                                    <option value="VIGENTE">Vigente</option>
+                                    <option value="NO POSEE">No Posee</option>
+                                    <option value="VENCIDA">Vencida</option>
+                                    <option value="RETENIDA">Retenida</option>
+                                    <option value="SUSPENDIDA">Suspendida</option>
+                                    <option value="CANCELADA">Cancelada</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <!-- 11. CLASE LICENCIA -->
+                            <div class="form-group">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Clase de Licencia</label>
+                                <select class="sim-select" name="CLASE_LICENCIA">
+                                    <option value="A I">Particular (A I)</option>
+                                    <option value="A IIa">Taxis (A IIa)</option>
+                                    <option value="A IIb">Microbús (A IIb)</option>
+                                    <option value="A IIIa">Bus grande (A IIIa)</option>
+                                    <option value="A IIIb">Camión de Carga (A IIIb)</option>
+                                    <option value="A IIIc">Articulado (A IIIc)</option>
+                                    <option value="B IIb">Motocicletas (B IIb)</option>
+                                    <option value="B IIc">Mototaxis (B IIc)</option>
+                                    <option value="NO POSEE">No Posee</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <!-- 12. SE SOMETIO A DOSAJE CUALITATIVO -->
+                            <div class="form-group">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">¿Sometido a Dosaje Cualit?</label>
+                                <select class="sim-select" name="¿SE SOMETIÓ A DOSAJE ETÍLICO CUALITATIVO?">
+                                    <option value="SI">Sí se sometió</option>
+                                    <option value="NO">No se sometió</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <!-- 13. SE SOMETIO A DOSAJE CUANTITATIVO -->
+                            <div class="form-group">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">¿Sometido a Dosaje Cuant?</label>
+                                <select class="sim-select" name="¿SE SOMETIÓ A DOSAJE ETÍLICO CUANTITATIVO?">
+                                    <option value="NO">No se sometió</option>
+                                    <option value="SI">Sí se sometió</option>
+                                    <option value="DESCONOCIDO">Desconocido</option>
+                                </select>
+                            </div>
+
+                            <!-- 14. RED VIAL -->
+                            <div class="form-group">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Red Vial</label>
+                                <select class="sim-select" name="RED VIAL">
+                                    <option value="NACIONAL">Red Vial Nacional</option>
+                                    <option value="DEPARTAMENTAL">Red Vial Departamental</option>
+                                    <option value="VECINAL">Red Vial Vecinal</option>
+                                    <option value="URBANO">Vía Urbana</option>
+                                </select>
+                            </div>
+
+                            <!-- 15. MES -->
+                            <div class="form-group">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Mes del Siniestro</label>
+                                <select class="sim-select" name="MES">
+                                    <option value="ENERO">Enero</option>
+                                    <option value="FEBRERO">Febrero</option>
+                                    <option value="MARZO">Marzo</option>
+                                    <option value="ABRIL">Abril</option>
+                                    <option value="MAYO">Mayo</option>
+                                    <option value="JUNIO">Junio</option>
+                                    <option value="JULIO">Julio</option>
+                                    <option value="AGOSTO">Agosto</option>
+                                    <option value="SETIEMBRE">Setiembre</option>
+                                    <option value="OCTUBRE">Octubre</option>
+                                    <option value="NOVIEMBRE">Noviembre</option>
+                                    <option value="DICIEMBRE">Diciembre</option>
+                                </select>
+                            </div>
+
+                            <!-- 16. DIA -->
+                            <div class="form-group">
+                                <label style="font-weight: 600; color: #374151; display: block; margin-bottom: 6px;">Día del Siniestro</label>
+                                <select class="sim-select" name="DIA">
+                                    <option value="LUNES">Lunes</option>
+                                    <option value="MARTES">Martes</option>
+                                    <option value="MIERCOLES">Miércoles</option>
+                                    <option value="JUEVES">Jueves</option>
+                                    <option value="VIERNES">Viernes</option>
+                                    <option value="SABADO">Sábado</option>
+                                    <option value="DOMINGO">Domingo</option>
                                 </select>
                             </div>
                         </div>
 
-                        <!-- VALORES POR DEFECTO PARA EL RESTO DE VARIABLES EXIGIDAS POR EL MODELO -->
-                        <input type="hidden" name="SEXO" value="MASCULINO">
-                        <input type="hidden" name="ESTADO LICENCIA" value="VIGENTE">
-                        <input type="hidden" name="CLASE_LICENCIA" value="A I">
-                        <input type="hidden" name="¿SE SOMETIÓ A DOSAJE ETÍLICO CUALITATIVO?" value="SI">
-                        <input type="hidden" name="¿SE SOMETIÓ A DOSAJE ETÍLICO CUANTITATIVO?" value="NO">
+                        <!-- CAMPOS ADICIONALES OCULTOS DE CONTROL -->
                         <input type="hidden" name="CAUSA ESPECIFICA" value="NO CUENTA CON CAUSA ESPECIFICA">
-                        <input type="hidden" name="RED VIAL" value="NACIONAL">
-                        <input type="hidden" name="MES" value="ENERO">
-                        <input type="hidden" name="DIA" value="VIERNES">
                     </form>
                 </div>
 
@@ -350,7 +471,6 @@
             // Escuchar cambios en cualquier campo del formulario
             const formFields = form.querySelectorAll('input, select');
             formFields.forEach(field => {
-                // Escuchamos 'input' en sliders y 'change' en selectores
                 const eventType = field.type === 'range' ? 'input' : 'change';
                 field.addEventListener(eventType, realizarPrediccionSimulador);
             });
@@ -363,7 +483,6 @@
             const form = document.getElementById('sim-form');
             const formData = new FormData(form);
             
-            // Construir JSON
             const datos = {};
             formData.forEach((value, key) => {
                 if (key === 'EDAD' || key === 'HORA') {
@@ -373,7 +492,6 @@
                 }
             });
 
-            // Realizar petición asíncrona
             fetch('/api/predict', {
                 method: 'POST',
                 headers: {
@@ -397,7 +515,6 @@
             const confianza = result.confianza;
             const probs = result.probabilidades;
 
-            // Actualizar tarjeta principal
             const card = document.getElementById('sim-main-class');
             const label = document.getElementById('sim-class-label');
             const conf = document.getElementById('sim-confianza');
@@ -410,11 +527,9 @@
             
             conf.textContent = `Confianza: ${(confianza * 100).toFixed(2)}%`;
 
-            // Actualizar barras de probabilidad
             const probBars = document.getElementById('sim-prob-bars');
             probBars.innerHTML = '';
 
-            // Orden fijo para que no salten de posición y la visualización sea estable
             CLASES.forEach(labelClass => {
                 const prob = probs[labelClass] || 0;
                 const labelLower = labelClass.toLowerCase();
