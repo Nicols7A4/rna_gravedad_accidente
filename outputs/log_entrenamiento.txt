@@ -1,13 +1,13 @@
 ======================================================================
 REGISTRO DE ENTRENAMIENTO - PREDICTOR DE SINIESTROS VIALES
-Fecha de Ejecución: 2026-07-10 01:57:47
+Fecha de Ejecución: 2026-07-10 02:09:31
 ======================================================================
 Dataset de Entrada: 23973 registros totales
 Clase de Costo Utilizada: focal_loss
 Parámetros de Entrenamiento:
   - Optimizador: ADAM
-  - Épocas: 100
-  - Tasa de Aprendizaje (alpha): 0.001
+  - Épocas: 200
+  - Tasa de Aprendizaje (alpha): 0.002
   - Tamaño de Batch (batch_size): 64
   - Weight Decay (L2): 1e-4
   - Clip Norm: 2.0
@@ -17,7 +17,7 @@ Arquitectura de la Red Neuronal:
 =============================================
 Capa                 Shape W           Params
 =============================================
-Dense_1              [relu    ] (215, 128)         27648
+Dense_1              [relu    ] (216, 128)         27776
 Dropout_2            [dropout ] N/A                    0
 Dense_3              [relu    ] (128, 64)           8256
 Dropout_4            [dropout ] N/A                    0
@@ -25,38 +25,38 @@ Dense_5              [relu    ] (64, 32)            2080
 Dropout_6            [dropout ] N/A                    0
 Dense_7              [softmax ] (32, 3)               99
 =============================================
-Total parámetros                       38083
+Total parámetros                       38211
 Costo: focal_loss
 =============================================
 
 Historial del Costo por Época:
-  Época   0: Costo = 0.399768
-  Época  10: Costo = 0.179184
-  Época  20: Costo = 0.149984
-  Época  30: Costo = 0.130158
-  Época  40: Costo = 0.116533
-  Época  50: Costo = 0.112937
-  Época  60: Costo = 0.107285
-  Época  70: Costo = 0.101902
-  Época  80: Costo = 0.101142
-  Época  90: Costo = 0.096220
-  Época  99: Costo = 0.094826
+  Época   0: Costo = 0.428435
+  Época  10: Costo = 0.190839
+  Época  20: Costo = 0.159631
+  Época  30: Costo = 0.143137
+  Época  40: Costo = 0.130082
+  Época  50: Costo = 0.117928
+  Época  60: Costo = 0.113078
+  Época  70: Costo = 0.106997
+  Época  80: Costo = 0.106345
+  Época  90: Costo = 0.101854
+  Época  99: Costo = 0.100665
 
 Evaluación en Conjunto de Validación (20% Test):
-Accuracy train: 0.8407  (costo: 0.0670)
-Accuracy test:  0.7245  (costo: 0.3445)
--> Diagnóstico: Brecha de 11.6% indica OVERFITTING
+Accuracy train: 0.8540  (costo: 0.0729)
+Accuracy test:  0.7299  (costo: 0.3447)
+-> Diagnóstico: Brecha de 12.4% indica OVERFITTING
 
 Reporte de Clasificación Final por Clase:
 =======================================================
 Clase        Precision     Recall         F1    Support
 -------------------------------------------------------
-ILESO           0.7680     0.8477     0.8059       1031
-LESIONADO       0.6110     0.8235     0.7015       1558
-FALLECIDO       0.8459     0.5970     0.7000       2206
+ILESO           0.7647     0.8335     0.7976       1033
+LESIONADO       0.6633     0.6675     0.6654       1582
+FALLECIDO       0.7622     0.7261     0.7437       2180
 -------------------------------------------------------
-macro avg       0.7416     0.7561     0.7358       4795
-weighted avg     0.7528     0.7245     0.7232       4795
+macro avg       0.7300     0.7424     0.7356       4795
+weighted avg     0.7301     0.7299     0.7295       4795
 =======================================================
-Accuracy: 0.7245
+Accuracy: 0.7299
 ======================================================================

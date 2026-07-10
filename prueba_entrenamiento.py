@@ -52,6 +52,7 @@ PNG_RED = f"{CARPETA_SALIDA}/arquitectura_red.png"
 CLASS_WEIGHTS = None  
 # ej.: [1.0, 1.4, 1.4]  (orden: ILESO, LESIONADO, FALLECIDO)
 # CLASS_WEIGHTS = [1.0, 1.1, 2]
+CLASS_WEIGHTS = [1.4, 1.0, 0.9]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -265,7 +266,9 @@ def main():
         class_counts[class_counts == 0] = 1
         adaptive_alpha = total_samples / (k_classes * class_counts)
         print(f"Pesos adaptativos de clase calculados: {adaptive_alpha}")
+        print(f"Pesos ajustados de clase calculados: {CLASS_WEIGHTS}")
         class_weights = adaptive_alpha
+        class_weights = CLASS_WEIGHTS
         cost_function = "focal_loss"
     else:
         class_weights = CLASS_WEIGHTS
@@ -332,8 +335,8 @@ def main():
         print(f"Clase de Costo Utilizada: {model.cost_name}")
         print(f"Parámetros de Entrenamiento:")
         print(f"  - Optimizador: ADAM")
-        print(f"  - Épocas: 200")
-        print(f"  - Tasa de Aprendizaje (alpha): 0.002")
+        print(f"  - Épocas: 100")
+        print(f"  - Tasa de Aprendizaje (alpha): 0.001")
         print(f"  - Tamaño de Batch (batch_size): 64")
         print(f"  - Weight Decay (L2): 1e-4")
         print(f"  - Clip Norm: 2.0")
