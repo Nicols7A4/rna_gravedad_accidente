@@ -1,3 +1,4 @@
+Usando los pesos ajustados manualmente: CLASS_WEIGHTS = [1.4, 1.0, 0.9]
 ======================================================================
 REGISTRO DE ENTRENAMIENTO - PREDICTOR DE SINIESTROS VIALES
 Fecha de Ejecución: 2026-07-10 02:09:31
@@ -6,8 +7,8 @@ Dataset de Entrada: 23973 registros totales
 Clase de Costo Utilizada: focal_loss
 Parámetros de Entrenamiento:
   - Optimizador: ADAM
-  - Épocas: 200
-  - Tasa de Aprendizaje (alpha): 0.002
+  - Épocas: 100
+  - Tasa de Aprendizaje (alpha): 0.001
   - Tamaño de Batch (batch_size): 64
   - Weight Decay (L2): 1e-4
   - Clip Norm: 2.0
