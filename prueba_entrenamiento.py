@@ -49,8 +49,9 @@ PNG_RED = f"{CARPETA_SALIDA}/arquitectura_red.png"
 # compensar frecuencia -- es para forzar al modelo a prestarle más atención
 # a las clases que confunde entre sí (LESIONADO <-> FALLECIDO).
 # Ajusta estos 3 números y vuelve a correr para ver el efecto.
-# CLASS_WEIGHTS = None  # ej.: [1.0, 1.4, 1.4]  (orden: ILESO, LESIONADO, FALLECIDO)
-CLASS_WEIGHTS = [1.0, 1.1, 2]
+CLASS_WEIGHTS = None  
+# ej.: [1.0, 1.4, 1.4]  (orden: ILESO, LESIONADO, FALLECIDO)
+# CLASS_WEIGHTS = [1.0, 1.1, 2]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -303,8 +304,8 @@ def main():
     print("\n[ENTRENAMIENTO] Iniciando entrenamiento con optimizador ADAM...")
     historial_costo = model.train(
         X_train, y_train,
-        epochs=200,
-        alpha=0.002,
+        epochs=100,
+        alpha=0.001,
         batch_size=64,
         momentum=0.80,  # Ignorado por Adam
         weight_decay=1e-4,
