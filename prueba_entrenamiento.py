@@ -58,6 +58,7 @@ CLASS_WEIGHTS = [1.0, 1.1, 2]
 # ─────────────────────────────────────────────────────────────────────────────
 
 def cargar_y_balancear(ruta_csv: str, seed: int = SEMILLA, balancear: bool = True) -> pd.DataFrame:
+    # Cargar el dataset
     df = pd.read_csv(ruta_csv, encoding="utf-8")
 
     # Descartamos "NO SE CONOCE": no es una clase real de gravedad
@@ -117,9 +118,9 @@ MIN_FRECUENCIA = 30  # categorías con menos de esto -> "OTRO"
 class SiniestrosPreprocessor:
     def __init__(self, min_frecuencia=MIN_FRECUENCIA):
         self.min_frecuencia = min_frecuencia
-        self.frequent_categories_ = {}
-        self.median_edad_ = None
-        self.columns_ohe_ = None
+        self.frequent_categories_ = {}          # Guarda qué categorías superan el umbral 30
+        self.median_edad_ = None                # Guarda la mediana de edad de entrenamiento
+        self.columns_ohe_ = None                # Guarda la lista exacta de las 213 columnas 
 
     def fit(self, df: pd.DataFrame):
         # 1. Mediana de edad
@@ -303,7 +304,7 @@ def main():
     historial_costo = model.train(
         X_train, y_train,
         epochs=200,
-        alpha=0.001,
+        alpha=0.002,
         batch_size=64,
         momentum=0.80,  # Ignorado por Adam
         weight_decay=1e-4,
